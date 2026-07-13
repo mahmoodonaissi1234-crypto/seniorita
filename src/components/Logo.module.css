@@ -1,0 +1,30 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--sage-dark);
+}
+
+.logo svg {
+  width: 1.4em;
+  height: 1.4em;
+  flex-shrink: 0;
+}
+
+.word {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.sm .word {
+  font-size: 1.1rem;
+}
+
+.md .word {
+  font-size: 1.5rem;
+}
+
+.lg .word {
+  font-size: 2.25rem;
+}

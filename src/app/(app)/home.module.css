@@ -1,0 +1,18 @@
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 640px;
+}
+
+.home h1 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--sage-dark);
+}
+
+.lead {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--ink);
+}

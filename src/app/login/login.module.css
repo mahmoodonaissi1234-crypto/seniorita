@@ -1,0 +1,100 @@
+.page {
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(107, 127, 94, 0.55), transparent 45%),
+    radial-gradient(circle at 85% 15%, rgba(193, 122, 84, 0.45), transparent 50%),
+    radial-gradient(circle at 20% 85%, rgba(176, 141, 87, 0.35), transparent 45%),
+    radial-gradient(circle at 90% 90%, rgba(74, 93, 67, 0.5), transparent 50%),
+    linear-gradient(160deg, #eef2e6 0%, #f7f3e8 45%, #f3ece0 100%);
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  background: rgba(250, 247, 240, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 20px 60px rgba(47, 42, 34, 0.15);
+  backdrop-filter: blur(6px);
+}
+
+.tagline {
+  color: var(--sage-dark);
+  font-size: 0.9rem;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.label input {
+  font-size: 1rem;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--cream);
+  color: var(--ink);
+}
+
+.label input:focus {
+  outline: 2px solid var(--sage);
+  outline-offset: 1px;
+}
+
+.error {
+  color: #a8402c;
+  font-size: 0.85rem;
+  background: rgba(168, 64, 44, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.submit {
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: var(--sage-dark);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--sage);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
