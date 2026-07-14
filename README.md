@@ -1,11 +1,12 @@
 # Seniorita
 
-A minimal full-stack starter built with [Next.js](https://nextjs.org) (TypeScript, App Router). It exists as a demo/learning project for practicing Git and GitHub workflows alongside real development.
+Seniorita is a small business selling nature-inspired, private-labeled rings and bracelets. This repo is the admin/management app for running it — login, dashboard, item and category catalog, finance, and settings. It's also a demo/learning project for practicing Git and GitHub workflows alongside real development.
 
 ## Stack
 
-- **Frontend:** React via Next.js App Router (`src/app/page.tsx`)
-- **Backend:** Next.js API route (`src/app/api/hello/route.ts`)
+- **Frontend:** React via Next.js App Router
+- **Backend:** Next.js API routes + Proxy (`src/proxy.ts`, this Next.js version's replacement for `middleware.ts`)
+- **Database:** SQLite via Prisma ORM (driver adapter: `@prisma/adapter-better-sqlite3`)
 - **Language:** TypeScript
 - **Linting:** ESLint
 
@@ -13,27 +14,53 @@ A minimal full-stack starter built with [Next.js](https://nextjs.org) (TypeScrip
 
 ```bash
 npm install
+npm run db:migrate   # creates the SQLite database and applies the schema
+npm run db:seed       # inserts 5 sample categories and 15 sample items
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — the homepage fetches a message from the `/api/hello` backend route, showing the frontend and backend talking to each other.
+Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to a login page. Sign in with:
+
+- **Email:** `admin@seniorita.com`
+- **Password:** `password`
+
+After logging in you'll land on the dashboard shell (Home / Dashboard / Items / Categories / Finance / Settings).
 
 Other scripts:
 
 ```bash
-npm run build   # production build
-npm run start   # run the production build
-npm run lint    # run ESLint
+npm run build       # production build
+npm run start        # run the production build
+npm run lint          # run ESLint
+npm run db:studio    # browse/edit the database in Prisma Studio
 ```
 
 ## Project Structure
 
 ```
-src/app/
-  page.tsx          # homepage (frontend)
-  layout.tsx         # root layout
-  api/hello/route.ts # example backend API route
+prisma/
+  schema.prisma       # Category and Item models
+  seed.ts              # sample data (5 categories, 15 items)
+src/
+  app/
+    login/             # public login page
+    (app)/              # protected dashboard shell (Home/Dashboard/Items/Categories/Finance/Settings)
+    api/auth/           # login/logout API routes
+  lib/
+    auth.ts             # session cookie + credential check
+    db.ts                # Prisma client singleton
+    items.ts             # helpers for the Item.images JSON field
+  proxy.ts               # route protection (redirects unauthenticated users to /login)
 ```
+
+## Database
+
+The database is SQLite, stored locally as `dev.db` (gitignored — each machine has its own copy). Schema changes live in `prisma/schema.prisma`, and migrations are tracked in `prisma/migrations/` (committed to git).
+
+- **Category**: `id`, `name`, `gender` (men/women/unisex), `description`, `createdAt`
+- **Item**: `id`, `name`, `category` (FK), `gender`, `type` (ring/bracelet), `price`, `material`, `natureTheme`, `description`, `images` (JSON array of image paths), `stock`, `isActive`, `createdAt`
+
+After pulling changes that touch `prisma/schema.prisma`, re-run `npm run db:migrate` to apply them to your local database.
 
 ## Git & GitHub Workflow (quick reference)
 
