@@ -6,7 +6,7 @@ Seniorita is a small business selling nature-inspired, private-labeled rings and
 
 - **Frontend:** React via Next.js App Router
 - **Backend:** Next.js API routes + Proxy (`src/proxy.ts`, this Next.js version's replacement for `middleware.ts`)
-- **Database:** SQLite via Prisma ORM (driver adapter: `@prisma/adapter-better-sqlite3`)
+- **Database:** SQLite-compatible via Prisma ORM (driver adapter: `@prisma/adapter-libsql`) — a local file for development, [Turso](https://turso.tech) for production
 - **Language:** TypeScript
 - **Linting:** ESLint
 
@@ -61,6 +61,16 @@ The database is SQLite, stored locally as `dev.db` (gitignored — each machine 
 - **Item**: `id`, `name`, `category` (FK), `gender`, `type` (ring/bracelet), `price`, `material`, `natureTheme`, `description`, `images` (JSON array of image paths), `stock`, `isActive`, `createdAt`
 
 After pulling changes that touch `prisma/schema.prisma`, re-run `npm run db:migrate` to apply them to your local database.
+
+### Production database (Turso)
+
+Local development uses a SQLite file (`dev.db`), which doesn't work on Vercel's serverless filesystem. Production uses [Turso](https://turso.tech) instead — same SQLite dialect, just hosted, so no schema changes are needed.
+
+1. Create a free Turso database (via the Turso dashboard or CLI)
+2. Get its URL and an auth token
+3. Combine them into one connection string: `libsql://your-db-name.turso.io?authToken=your-auth-token`
+4. Set that as the `DATABASE_URL` environment variable in Vercel's project settings (not in a committed file)
+5. Run `npm run db:migrate` and `npm run db:seed` once locally with that same `DATABASE_URL` set, to apply the schema and sample data to the production database
 
 ## Git & GitHub Workflow (quick reference)
 
