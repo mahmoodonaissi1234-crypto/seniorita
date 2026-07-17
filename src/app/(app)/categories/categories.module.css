@@ -16,53 +16,140 @@
   font-size: 0.9rem;
 }
 
-.list {
+.state {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 12px;
-}
-
-.card {
+  padding: 32px;
   background: var(--cream);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.cardHeader h2 {
-  font-family: var(--font-display);
-  font-size: 1.2rem;
   color: var(--ink);
 }
 
-.gender {
-  font-size: 0.7rem;
+.retry {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--sage-dark);
+  color: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.actionError {
+  color: #a8402c;
+  font-size: 0.85rem;
+  background: rgba(168, 64, 44, 0.08);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.table th {
+  text-align: left;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: var(--sage-light);
   color: var(--sage-dark);
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-weight: 600;
+  background: var(--cream-dark);
+  padding: 12px 16px;
 }
 
-.description {
+.table td {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
   color: var(--ink);
-  opacity: 0.8;
   font-size: 0.9rem;
 }
 
-.count {
+.genderCell {
+  text-transform: capitalize;
+}
+
+.actionsCell {
+  display: flex;
+  gap: 8px;
+}
+
+.editBtn,
+.deleteBtn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink);
   font-size: 0.8rem;
-  color: var(--terracotta);
-  font-weight: 500;
+  cursor: pointer;
+}
+
+.editBtn:hover {
+  background: var(--sage-light);
+  color: var(--sage-dark);
+  border-color: var(--sage-light);
+}
+
+.deleteBtn:hover {
+  background: var(--terracotta);
+  color: #fff;
+  border-color: var(--terracotta);
+}
+
+.editRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.editInput {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--ink);
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 120px;
+}
+
+.editActions {
+  display: flex;
+  gap: 8px;
+}
+
+.saveBtn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--sage-dark);
+  color: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.saveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.85rem;
+  cursor: pointer;
 }
