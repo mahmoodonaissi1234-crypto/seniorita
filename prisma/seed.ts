@@ -197,15 +197,18 @@ const itemsByCategory: Record<
 };
 
 async function main() {
+  await prisma.transaction.deleteMany();
   await prisma.item.deleteMany();
   await prisma.category.deleteMany();
+
+  const itemIdsByName: Record<string, number> = {};
 
   for (const category of categories) {
     const created = await prisma.category.create({ data: category });
 
     const items = itemsByCategory[category.name];
     for (const item of items) {
-      await prisma.item.create({
+      const createdItem = await prisma.item.create({
         data: {
           ...item,
           categoryId: created.id,
@@ -214,12 +217,68 @@ async function main() {
           isActive: true,
         },
       });
+      itemIdsByName[item.name] = createdItem.id;
     }
+  }
+
+  // Sample sales/expenses spanning the last several months so the Finance
+  // page's date-range filter and monthly chart have something to show.
+  const transactions: Array<{
+    type: "sale" | "expense";
+    amount: number;
+    description: string;
+    date: Date;
+    itemName?: string;
+  }> = [
+    { type: "sale", amount: 68, description: "Sold Fern Leaf Band Ring", date: new Date(2026, 1, 5), itemName: "Fern Leaf Band Ring" },
+    { type: "sale", amount: 82, description: "Sold Cactus Flower Ring", date: new Date(2026, 1, 12), itemName: "Cactus Flower Ring" },
+    { type: "expense", amount: 210, description: "Raw materials restock", date: new Date(2026, 1, 15) },
+    { type: "sale", amount: 65, description: "Sold River Pebble Band", date: new Date(2026, 1, 22), itemName: "River Pebble Band" },
+
+    { type: "sale", amount: 95, description: "Sold Moss Agate Cuff", date: new Date(2026, 2, 3), itemName: "Moss Agate Cuff" },
+    { type: "sale", amount: 92, description: "Sold Wild Rose Ring", date: new Date(2026, 2, 9), itemName: "Wild Rose Ring" },
+    { type: "sale", amount: 58, description: "Sold Terracotta Clay Bracelet", date: new Date(2026, 2, 18), itemName: "Terracotta Clay Bracelet" },
+    { type: "expense", amount: 45, description: "Packaging supplies", date: new Date(2026, 2, 20) },
+
+    { type: "sale", amount: 110, description: "Sold Sunset Citrine Ring", date: new Date(2026, 3, 4), itemName: "Sunset Citrine Ring" },
+    { type: "sale", amount: 70, description: "Sold Oak Bark Cuff", date: new Date(2026, 3, 11), itemName: "Oak Bark Cuff" },
+    { type: "expense", amount: 150, description: "Craft fair booth fee", date: new Date(2026, 3, 14) },
+    { type: "sale", amount: 76, description: "Sold Daisy Chain Bracelet", date: new Date(2026, 3, 25), itemName: "Daisy Chain Bracelet" },
+
+    { type: "sale", amount: 89, description: "Sold Driftwood Signet Ring", date: new Date(2026, 4, 6), itemName: "Driftwood Signet Ring" },
+    { type: "expense", amount: 32, description: "Shipping costs", date: new Date(2026, 4, 10) },
+    { type: "sale", amount: 48, description: "Sold Slate Stone Bracelet", date: new Date(2026, 4, 17), itemName: "Slate Stone Bracelet" },
+    { type: "sale", amount: 98, description: "Sold Lavender Sprig Ring", date: new Date(2026, 4, 28), itemName: "Lavender Sprig Ring" },
+
+    { type: "sale", amount: 74, description: "Sold Woodland Vine Ring", date: new Date(2026, 5, 2), itemName: "Woodland Vine Ring" },
+    { type: "expense", amount: 180, description: "Raw materials restock", date: new Date(2026, 5, 8) },
+    { type: "sale", amount: 55, description: "Sold Timber Grain Band", date: new Date(2026, 5, 19), itemName: "Timber Grain Band" },
+    { type: "sale", amount: 62, description: "Sold Cedar Root Bracelet", date: new Date(2026, 5, 26), itemName: "Cedar Root Bracelet" },
+
+    { type: "sale", amount: 68, description: "Sold Fern Leaf Band Ring", date: new Date(2026, 6, 3), itemName: "Fern Leaf Band Ring" },
+    { type: "sale", amount: 82, description: "Sold Cactus Flower Ring", date: new Date(2026, 6, 9), itemName: "Cactus Flower Ring" },
+    { type: "expense", amount: 40, description: "Packaging supplies", date: new Date(2026, 6, 12) },
+    { type: "sale", amount: 92, description: "Sold Wild Rose Ring", date: new Date(2026, 6, 16) },
+  ];
+
+  for (const transaction of transactions) {
+    await prisma.transaction.create({
+      data: {
+        type: transaction.type,
+        amount: transaction.amount,
+        description: transaction.description,
+        date: transaction.date,
+        itemId: transaction.itemName ? itemIdsByName[transaction.itemName] : undefined,
+      },
+    });
   }
 
   const categoryCount = await prisma.category.count();
   const itemCount = await prisma.item.count();
-  console.log(`Seeded ${categoryCount} categories and ${itemCount} items.`);
+  const transactionCount = await prisma.transaction.count();
+  console.log(
+    `Seeded ${categoryCount} categories, ${itemCount} items, and ${transactionCount} transactions.`
+  );
 }
 
 main()
