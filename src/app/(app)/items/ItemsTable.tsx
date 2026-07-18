@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { ALLOWED_GENDERS, type Gender } from "@/lib/categories";
 import { parseImages } from "@/lib/items";
 import { ItemModal, type ItemFormValues, type Category } from "./ItemModal";
@@ -72,6 +73,9 @@ export function ItemsTable() {
   const [modal, setModal] = useState<ModalState>(null);
   const [deleteTarget, setDeleteTarget] = useState<Item | null>(null);
 
+  const searchParams = useSearchParams();
+  const handledEditParam = useRef(false);
+
   // Load categories once, for the filter dropdown and the item form.
   useEffect(() => {
     let ignore = false;
@@ -131,6 +135,19 @@ export function ItemsTable() {
     const id = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(id);
   }, [toast]);
+
+  // Deep link support: /items?edit=<id> opens that item's edit modal directly.
+  useEffect(() => {
+    if (handledEditParam.current || !items) return;
+    const editId = searchParams.get("edit");
+    if (!editId) return;
+    const target = items.find((i) => i.id === Number(editId));
+    if (!target) return;
+
+    handledEditParam.current = true;
+    const id = setTimeout(() => setModal({ mode: "edit", item: target }), 0);
+    return () => clearTimeout(id);
+  }, [items, searchParams]);
 
   async function handleToggleActive(item: Item) {
     setActionError(null);

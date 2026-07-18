@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ItemsTable } from "./ItemsTable";
 import styles from "./items.module.css";
 
@@ -9,7 +10,9 @@ export default function ItemsPage() {
         <p>Browse and manage the ring and bracelet catalog.</p>
       </div>
 
-      <ItemsTable />
+      <Suspense fallback={<p className={styles.state}>Loading items...</p>}>
+        <ItemsTable />
+      </Suspense>
     </div>
   );
 }

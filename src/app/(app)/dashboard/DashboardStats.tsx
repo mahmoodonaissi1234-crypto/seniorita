@@ -1,11 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import styles from "./dashboard.module.css";
 
 type Item = {
+  id: number;
+  name: string;
   price: number;
   stock: number;
+  createdAt: string;
 };
 
 type Category = {
@@ -15,6 +19,7 @@ type Category = {
 // No threshold was specified in the ticket; 5 units is a reasonable
 // low-stock cutoff for a small catalog like this one.
 const LOW_STOCK_THRESHOLD = 5;
+const RECENT_ITEMS_COUNT = 5;
 
 export function DashboardStats() {
   const [items, setItems] = useState<Item[] | null>(null);
@@ -92,14 +97,40 @@ export function DashboardStats() {
     },
   ];
 
+  const recentItems = [...items]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, RECENT_ITEMS_COUNT);
+
   return (
-    <div className={styles.grid}>
-      {cards.map((card) => (
-        <div key={card.label} className={styles.card}>
-          <span className={styles.cardLabel}>{card.label}</span>
-          <span className={styles.cardValue}>{card.value}</span>
-        </div>
-      ))}
+    <div className={styles.stack}>
+      <div className={styles.grid}>
+        {cards.map((card) => (
+          <div key={card.label} className={styles.card}>
+            <span className={styles.cardLabel}>{card.label}</span>
+            <span className={styles.cardValue}>{card.value}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className={styles.recentSection}>
+        <h2 className={styles.recentTitle}>Recently Added</h2>
+        {recentItems.length === 0 ? (
+          <p className={styles.state}>No items yet.</p>
+        ) : (
+          <ul className={styles.recentList}>
+            {recentItems.map((item) => (
+              <li key={item.id} className={styles.recentRow}>
+                <Link href={`/items?edit=${item.id}`} className={styles.recentLink}>
+                  {item.name}
+                </Link>
+                <span className={styles.recentDate}>
+                  {new Date(item.createdAt).toLocaleDateString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
