@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Gender } from "@/lib/categories";
 import { CategoryModal, type CategoryFormValues } from "./CategoryModal";
+import { DeleteCategoryModal } from "./DeleteCategoryModal";
 import styles from "./categories.module.css";
 
 type Category = {
@@ -25,6 +26,7 @@ export function CategoriesTable() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [modal, setModal] = useState<ModalState>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,19 +58,20 @@ export function CategoriesTable() {
     return () => clearTimeout(id);
   }, [toast]);
 
-  async function handleDelete(category: Category) {
-    if (!confirm(`Delete "${category.name}"?`)) return;
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
     setActionError(null);
 
-    try {
-      const res = await fetch(`/api/categories/${category.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to delete category");
+    const res = await fetch(`/api/categories/${deleteTarget.id}`, { method: "DELETE" });
+    const data = await res.json();
 
-      setCategories((prev) => prev?.filter((c) => c.id !== category.id) ?? null);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to delete category");
+    if (!res.ok) {
+      return { error: data.error ?? "Failed to delete category" };
     }
+
+    setCategories((prev) => prev?.filter((c) => c.id !== deleteTarget.id) ?? null);
+    setDeleteTarget(null);
+    setToast("Category deleted");
   }
 
   async function handleModalSubmit(values: CategoryFormValues) {
@@ -144,7 +147,10 @@ export function CategoriesTable() {
                   >
                     Edit
                   </button>
-                  <button className={styles.deleteBtn} onClick={() => handleDelete(category)}>
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={() => setDeleteTarget(category)}
+                  >
                     Delete
                   </button>
                 </td>
@@ -168,6 +174,14 @@ export function CategoriesTable() {
           }
           onClose={() => setModal(null)}
           onSubmit={handleModalSubmit}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteCategoryModal
+          category={deleteTarget}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={handleConfirmDelete}
         />
       )}
     </div>
