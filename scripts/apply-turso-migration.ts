@@ -1,19 +1,47 @@
+import "./load-turso-env";
 import { createClient } from "@libsql/client";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL not set");
 
 const client = createClient({ url });
-const sql = readFileSync("./prisma/migrations/20260714121943_init/migration.sql", "utf-8");
+const MIGRATIONS_DIR = "./prisma/migrations";
+
+const migrationFolders = readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort();
 
 async function main() {
-  await client.executeMultiple(sql);
+  for (const folder of migrationFolders) {
+    const sql = readFileSync(join(MIGRATIONS_DIR, folder, "migration.sql"), "utf-8");
+    const statements = sql
+      .split(";")
+      .map((statement) => statement.trim())
+      .filter(Boolean);
+
+    for (const statement of statements) {
+      try {
+        await client.execute(statement);
+      } catch (error) {
+        // Already-applied migrations re-run harmlessly; only "already
+        // exists" errors are expected here, anything else is real.
+        if (error instanceof Error && /already exists/i.test(error.message)) {
+          continue;
+        }
+        throw error;
+      }
+    }
+    console.log(`Applied migration: ${folder}`);
+  }
+
   const tables = await client.execute(
     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
   );
   console.log(
-    "Tables created:",
+    "Tables present:",
     tables.rows.map((r) => r.name)
   );
 }
