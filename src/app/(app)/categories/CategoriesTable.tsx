@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import { ALLOWED_GENDERS, type Gender } from "@/lib/categories";
+import { useEffect, useState } from "react";
+import type { Gender } from "@/lib/categories";
+import { CategoryModal, type CategoryFormValues } from "./CategoryModal";
 import styles from "./categories.module.css";
 
 type Category = {
@@ -12,21 +13,19 @@ type Category = {
   _count: { items: number };
 };
 
-type EditForm = {
-  name: string;
-  gender: Gender;
-  description: string;
-};
+type ModalState =
+  | { mode: "create" }
+  | { mode: "edit"; category: Category }
+  | null;
 
 export function CategoriesTable() {
   const [categories, setCategories] = useState<Category[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<EditForm | null>(null);
-  const [saving, setSaving] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [modal, setModal] = useState<ModalState>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -51,46 +50,11 @@ export function CategoriesTable() {
     };
   }, [refreshKey]);
 
-  function startEdit(category: Category) {
-    setActionError(null);
-    setEditingId(category.id);
-    setEditForm({
-      name: category.name,
-      gender: category.gender as Gender,
-      description: category.description,
-    });
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
-    setEditForm(null);
-  }
-
-  async function saveEdit(event: FormEvent, id: number) {
-    event.preventDefault();
-    if (!editForm) return;
-    setSaving(true);
-    setActionError(null);
-
-    try {
-      const res = await fetch(`/api/categories/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to update category");
-
-      setCategories(
-        (prev) => prev?.map((c) => (c.id === id ? { ...c, ...data } : c)) ?? null
-      );
-      cancelEdit();
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to update category");
-    } finally {
-      setSaving(false);
-    }
-  }
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   async function handleDelete(category: Category) {
     if (!confirm(`Delete "${category.name}"?`)) return;
@@ -107,98 +71,77 @@ export function CategoriesTable() {
     }
   }
 
-  if (loading) {
-    return <p className={styles.state}>Loading categories...</p>;
-  }
+  async function handleModalSubmit(values: CategoryFormValues) {
+    const isEdit = modal?.mode === "edit";
+    const url = isEdit ? `/api/categories/${modal.category.id}` : "/api/categories";
+    const method = isEdit ? "PUT" : "POST";
 
-  if (error) {
-    return (
-      <div className={styles.state}>
-        <p>{error}</p>
-        <button
-          className={styles.retry}
-          onClick={() => {
-            setError(null);
-            setLoading(true);
-            setRefreshKey((k) => k + 1);
-          }}
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    const data = await res.json();
 
-  if (!categories || categories.length === 0) {
-    return <p className={styles.state}>No categories yet.</p>;
+    if (!res.ok) {
+      return { error: data.error ?? "Failed to save category" };
+    }
+
+    setModal(null);
+    setToast(isEdit ? "Category updated" : "Category created");
+    setRefreshKey((k) => k + 1);
   }
 
   return (
     <div>
+      <div className={styles.toolbar}>
+        <button className={styles.newBtn} onClick={() => setModal({ mode: "create" })}>
+          New Category
+        </button>
+      </div>
+
+      {toast && <p className={styles.toast}>{toast}</p>}
       {actionError && <p className={styles.actionError}>{actionError}</p>}
 
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Gender</th>
-            <th>Items</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {categories.map((category) =>
-            editingId === category.id && editForm ? (
-              <tr key={category.id}>
-                <td colSpan={4}>
-                  <form className={styles.editRow} onSubmit={(e) => saveEdit(e, category.id)}>
-                    <input
-                      className={styles.editInput}
-                      value={editForm.name}
-                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      required
-                      aria-label="Category name"
-                    />
-                    <select
-                      className={styles.editInput}
-                      value={editForm.gender}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, gender: e.target.value as Gender })
-                      }
-                      aria-label="Gender"
-                    >
-                      {ALLOWED_GENDERS.map((g) => (
-                        <option key={g} value={g}>
-                          {g}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      className={styles.editInput}
-                      value={editForm.description}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, description: e.target.value })
-                      }
-                      aria-label="Description"
-                    />
-                    <div className={styles.editActions}>
-                      <button type="submit" className={styles.saveBtn} disabled={saving}>
-                        {saving ? "Saving..." : "Save"}
-                      </button>
-                      <button type="button" className={styles.cancelBtn} onClick={cancelEdit}>
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                </td>
-              </tr>
-            ) : (
+      {loading ? (
+        <p className={styles.state}>Loading categories...</p>
+      ) : error ? (
+        <div className={styles.state}>
+          <p>{error}</p>
+          <button
+            className={styles.retry}
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              setRefreshKey((k) => k + 1);
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      ) : !categories || categories.length === 0 ? (
+        <p className={styles.state}>No categories yet. Create one to get started.</p>
+      ) : (
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Gender</th>
+              <th>Items</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.map((category) => (
               <tr key={category.id}>
                 <td>{category.name}</td>
                 <td className={styles.genderCell}>{category.gender}</td>
                 <td>{category._count.items}</td>
                 <td className={styles.actionsCell}>
-                  <button className={styles.editBtn} onClick={() => startEdit(category)}>
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => setModal({ mode: "edit", category })}
+                  >
                     Edit
                   </button>
                   <button className={styles.deleteBtn} onClick={() => handleDelete(category)}>
@@ -206,10 +149,27 @@ export function CategoriesTable() {
                   </button>
                 </td>
               </tr>
-            )
-          )}
-        </tbody>
-      </table>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {modal && (
+        <CategoryModal
+          mode={modal.mode}
+          initialValues={
+            modal.mode === "edit"
+              ? {
+                  name: modal.category.name,
+                  gender: modal.category.gender as Gender,
+                  description: modal.category.description,
+                }
+              : { name: "", gender: "unisex", description: "" }
+          }
+          onClose={() => setModal(null)}
+          onSubmit={handleModalSubmit}
+        />
+      )}
     </div>
   );
 }
