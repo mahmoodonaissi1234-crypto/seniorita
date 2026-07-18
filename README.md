@@ -25,6 +25,8 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 - **Email:** `admin@seniorita.com`
 - **Password:** `password`
 
+(These are seeded defaults — changing your name, email, password, or business details on the Settings page updates the account you actually log in with.)
+
 After logging in you'll land on the dashboard shell (Home / Dashboard / Items / Categories / Finance / Settings).
 
 Other scripts:
@@ -48,9 +50,10 @@ src/
     (app)/              # protected dashboard shell (Home/Dashboard/Items/Categories/Finance/Settings)
     api/auth/           # login/logout API routes
   lib/
-    auth.ts             # session cookie + credential check
+    auth.ts             # session cookie + credential check (against the Settings row)
     db.ts                # Prisma client singleton
     items.ts             # helpers for the Item.images JSON field
+    settings.ts          # password hashing + Settings validation
   proxy.ts               # route protection (redirects unauthenticated users to /login)
 ```
 
@@ -61,6 +64,7 @@ The database is SQLite, stored locally as `dev.db` (gitignored — each machine 
 - **Category**: `id`, `name`, `gender` (men/women/unisex), `description`, `createdAt`
 - **Item**: `id`, `name`, `category` (FK), `gender`, `type` (ring/bracelet), `price`, `material`, `natureTheme`, `description`, `images` (JSON array of image paths), `stock`, `isActive`, `createdAt`
 - **Transaction**: `id`, `type` (sale/expense), `amount`, `description`, `date`, `item` (optional FK), `createdAt` — see "Finance scope" below
+- **Settings**: single-row (id 1) table for the signed-in admin's account and business profile — `ownerName`, `email`, `passwordHash`, `businessName`, `logoUrl` (a data URL), `updatedAt`. Login credentials are checked against this row instead of a hardcoded value, so changing your password in Settings actually takes effect.
 
 After pulling changes that touch `prisma/schema.prisma`, re-run `npm run db:migrate` to apply them to your local database.
 

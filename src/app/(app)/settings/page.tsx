@@ -1,10 +1,15 @@
-import { PlaceholderPage } from "@/components/PlaceholderPage";
+import { SettingsForm } from "./SettingsForm";
+import styles from "./settings.module.css";
 
 export default function SettingsPage() {
   return (
-    <PlaceholderPage
-      title="Settings"
-      description="Manage store details and account preferences."
-    />
+    <div className={styles.wrap}>
+      <div className={styles.header}>
+        <h1>Settings</h1>
+        <p>Manage your account and business details.</p>
+      </div>
+
+      <SettingsForm />
+    </div>
   );
 }

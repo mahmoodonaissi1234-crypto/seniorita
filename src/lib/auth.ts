@@ -1,8 +1,10 @@
+import { prisma } from "@/lib/db";
+import { verifyPassword } from "@/lib/settings";
+
 export const SESSION_COOKIE = "seniorita_session";
 
-const VALID_EMAIL = "admin@seniorita.com";
-const VALID_PASSWORD = "password";
-
-export function checkCredentials(email: string, password: string) {
-  return email === VALID_EMAIL && password === VALID_PASSWORD;
+export async function checkCredentials(email: string, password: string) {
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  if (!settings) return false;
+  return email === settings.email && verifyPassword(password, settings.passwordHash);
 }
