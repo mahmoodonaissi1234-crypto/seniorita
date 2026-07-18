@@ -20,18 +20,36 @@ model Category {
 }
 
 model Item {
+  id           Int           @id @default(autoincrement())
+  name         String
+  categoryId   Int
+  category     Category      @relation(fields: [categoryId], references: [id])
+  gender       String
+  type         String
+  price        Float
+  material     String
+  natureTheme  String
+  description  String
+  images       String
+  stock        Int           @default(0)
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
+}
+
+// Finance scope decision (TICKET-102): tracks sales and expenses, not
+// inventory value (already shown on the Dashboard) and not orders/carts
+// (no storefront exists yet, so sales are logged manually). `itemId` is
+// optional and singular -- a transaction can reference at most one
+// catalog item; multi-item orders are out of scope until there's an
+// actual storefront generating them.
+model Transaction {
   id          Int      @id @default(autoincrement())
-  name        String
-  categoryId  Int
-  category    Category @relation(fields: [categoryId], references: [id])
-  gender      String
   type        String
-  price       Float
-  material    String
-  natureTheme String
+  amount      Float
   description String
-  images      String
-  stock       Int      @default(0)
-  isActive    Boolean  @default(true)
+  date        DateTime @default(now())
+  itemId      Int?
+  item        Item?    @relation(fields: [itemId], references: [id])
   createdAt   DateTime @default(now())
 }
