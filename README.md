@@ -80,9 +80,10 @@ Local development uses a SQLite file (`dev.db`), which doesn't work on Vercel's 
 4. Set that as the `DATABASE_URL` environment variable in Vercel's project settings (not in a committed file)
 5. Apply the schema and sample data once, locally, with that same `DATABASE_URL` set:
    ```bash
-   npm run db:migrate:turso   # applies the schema (Prisma's own migrate command can't parse libsql:// URLs, so this applies the migration SQL directly via the libSQL client instead)
-   npm run db:seed:turso        # inserts the sample categories and items
+   npm run db:migrate:turso   # applies any migrations not yet on Turso (Prisma's own migrate command can't parse libsql:// URLs, so this applies the migration SQL directly via the libSQL client instead)
+   npm run db:seed:turso        # inserts the sample categories, items, and transactions
    ```
+   `DATABASE_URL` can be set inline (`DATABASE_URL="..." npm run db:migrate:turso`), or by creating a gitignored `.env.turso` file in the project root with one line, `DATABASE_URL=libsql://your-db-name.turso.io?authToken=your-auth-token` — useful if your terminal mangles long tokens passed inline.
 
 ## Git & GitHub Workflow (quick reference)
 

@@ -1,3 +1,4 @@
+import "../scripts/load-turso-env";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { serializeImages } from "../src/lib/items";
