@@ -2,6 +2,7 @@ import "../scripts/load-turso-env";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { serializeImages } from "../src/lib/items";
+import { hashPassword } from "../src/lib/settings";
 
 const adapter = new PrismaLibSql({
   url: process.env.DATABASE_URL ?? "file:./dev.db",
@@ -201,6 +202,18 @@ async function main() {
   await prisma.transaction.deleteMany();
   await prisma.item.deleteMany();
   await prisma.category.deleteMany();
+  await prisma.settings.deleteMany();
+
+  await prisma.settings.create({
+    data: {
+      id: 1,
+      ownerName: "Admin",
+      email: "admin@seniorita.com",
+      passwordHash: hashPassword("password"),
+      businessName: "Seniorita",
+      logoUrl: null,
+    },
+  });
 
   const itemIdsByName: Record<string, number> = {};
 
