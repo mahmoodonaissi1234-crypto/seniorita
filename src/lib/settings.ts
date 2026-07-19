@@ -1,4 +1,6 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { isValidGender } from "@/lib/categories";
+import { isValidCurrency, serializeGenders } from "@/lib/storePreferences";
 
 const KEY_LENGTH = 64;
 const MAX_LOGO_LENGTH = 2_000_000; // ~1.5MB image as a base64 data URL
@@ -23,6 +25,10 @@ export type SettingsUpdate = {
   email: string;
   businessName: string;
   logoUrl: string | null;
+  currency: string;
+  taxRatePercent: number;
+  defaultGenders: string;
+  maintenanceMode: boolean;
   currentPassword?: string;
   newPassword?: string;
 };
@@ -48,6 +54,23 @@ export function validateSettingsInput(
     return { error: "Logo image is too large" };
   }
 
+  const currency = b.currency;
+  if (!isValidCurrency(currency)) {
+    return { error: "Select a valid currency" };
+  }
+
+  const taxRatePercent = Number(b.taxRatePercent);
+  if (!Number.isFinite(taxRatePercent) || taxRatePercent < 0 || taxRatePercent > 100) {
+    return { error: "Tax rate must be a number between 0 and 100" };
+  }
+
+  const defaultGendersInput = Array.isArray(b.defaultGenders) ? b.defaultGenders : [];
+  if (defaultGendersInput.length === 0 || !defaultGendersInput.every(isValidGender)) {
+    return { error: "Select at least one default gender category" };
+  }
+
+  const maintenanceMode = Boolean(b.maintenanceMode);
+
   const newPassword = typeof b.newPassword === "string" ? b.newPassword : "";
   const currentPassword = typeof b.currentPassword === "string" ? b.currentPassword : "";
 
@@ -69,6 +92,10 @@ export function validateSettingsInput(
       email,
       businessName,
       logoUrl,
+      currency,
+      taxRatePercent,
+      defaultGenders: serializeGenders(defaultGendersInput),
+      maintenanceMode,
       currentPassword: currentPassword || undefined,
       newPassword: newPassword || undefined,
     },

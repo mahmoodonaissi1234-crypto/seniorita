@@ -64,7 +64,7 @@ The database is SQLite, stored locally as `dev.db` (gitignored — each machine 
 - **Category**: `id`, `name`, `gender` (men/women/unisex), `description`, `createdAt`
 - **Item**: `id`, `name`, `category` (FK), `gender`, `type` (ring/bracelet), `price`, `material`, `natureTheme`, `description`, `images` (JSON array of image paths), `stock`, `isActive`, `createdAt`
 - **Transaction**: `id`, `type` (sale/expense), `amount`, `description`, `date`, `item` (optional FK), `createdAt` — see "Finance scope" below
-- **Settings**: single-row (id 1) table for the signed-in admin's account and business profile — `ownerName`, `email`, `passwordHash`, `businessName`, `logoUrl` (a data URL), `updatedAt`. Login credentials are checked against this row instead of a hardcoded value, so changing your password in Settings actually takes effect.
+- **Settings**: single-row (id 1) table for the signed-in admin's account and business profile — `ownerName`, `email`, `passwordHash`, `businessName`, `logoUrl` (a data URL), `updatedAt`. Login credentials are checked against this row instead of a hardcoded value, so changing your password in Settings actually takes effect. Also holds storefront-facing preferences (`currency`, `taxRatePercent`, `defaultGenders` JSON array, `maintenanceMode`) — these don't drive any live behavior yet since there's no public storefront, but the Settings page lets you configure them ahead of one existing.
 
 After pulling changes that touch `prisma/schema.prisma`, re-run `npm run db:migrate` to apply them to your local database.
 
