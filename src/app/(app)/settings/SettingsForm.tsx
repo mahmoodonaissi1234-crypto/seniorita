@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { ALLOWED_GENDERS, type Gender } from "@/lib/categories";
+import { ALLOWED_CURRENCIES, type Currency } from "@/lib/storePreferences";
 import styles from "./settings.module.css";
 
 type Settings = {
@@ -9,6 +11,10 @@ type Settings = {
   email: string;
   businessName: string;
   logoUrl: string | null;
+  currency: string;
+  taxRatePercent: number;
+  defaultGenders: string[];
+  maintenanceMode: boolean;
 };
 
 type FormValues = {
@@ -16,6 +22,10 @@ type FormValues = {
   email: string;
   businessName: string;
   logoUrl: string | null;
+  currency: Currency;
+  taxRatePercent: string;
+  defaultGenders: Gender[];
+  maintenanceMode: boolean;
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
@@ -28,6 +38,10 @@ const EMPTY_FORM: FormValues = {
   email: "",
   businessName: "",
   logoUrl: null,
+  currency: "USD",
+  taxRatePercent: "0",
+  defaultGenders: [...ALLOWED_GENDERS],
+  maintenanceMode: false,
   currentPassword: "",
   newPassword: "",
   confirmPassword: "",
@@ -41,6 +55,15 @@ function validate(values: FormValues): FieldErrors {
     errors.email = "A valid email is required";
   }
   if (!values.businessName.trim()) errors.businessName = "Business name is required";
+
+  const taxRate = Number(values.taxRatePercent);
+  if (!Number.isFinite(taxRate) || taxRate < 0 || taxRate > 100) {
+    errors.taxRatePercent = "Enter a tax rate between 0 and 100 (0 if none)";
+  }
+
+  if (values.defaultGenders.length === 0) {
+    errors.defaultGenders = "Select at least one gender category";
+  }
 
   if (values.newPassword || values.confirmPassword || values.currentPassword) {
     if (!values.currentPassword) {
@@ -84,6 +107,10 @@ export function SettingsForm() {
             email: data.email,
             businessName: data.businessName,
             logoUrl: data.logoUrl,
+            currency: (data.currency as Currency) ?? "USD",
+            taxRatePercent: String(data.taxRatePercent ?? 0),
+            defaultGenders: (data.defaultGenders as Gender[]) ?? [...ALLOWED_GENDERS],
+            maintenanceMode: data.maintenanceMode ?? false,
             currentPassword: "",
             newPassword: "",
             confirmPassword: "",
@@ -119,6 +146,15 @@ export function SettingsForm() {
     reader.readAsDataURL(file);
   }
 
+  function toggleDefaultGender(gender: Gender) {
+    setValues((prev) => ({
+      ...prev,
+      defaultGenders: prev.defaultGenders.includes(gender)
+        ? prev.defaultGenders.filter((g) => g !== gender)
+        : [...prev.defaultGenders, gender],
+    }));
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const errors = validate(values);
@@ -136,6 +172,10 @@ export function SettingsForm() {
         email: values.email,
         businessName: values.businessName,
         logoUrl: values.logoUrl,
+        currency: values.currency,
+        taxRatePercent: Number(values.taxRatePercent),
+        defaultGenders: values.defaultGenders,
+        maintenanceMode: values.maintenanceMode,
         currentPassword: values.currentPassword || undefined,
         newPassword: values.newPassword || undefined,
       }),
@@ -284,6 +324,72 @@ export function SettingsForm() {
             />
           </div>
         </div>
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Store Preferences</h2>
+        <p className={styles.sectionNote}>
+          These control the public storefront once it exists — they don&apos;t affect the admin
+          app you&apos;re using now.
+        </p>
+
+        <label className={styles.field}>
+          Currency
+          <select
+            value={values.currency}
+            onChange={(e) => setValues({ ...values, currency: e.target.value as Currency })}
+          >
+            {ALLOWED_CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className={styles.field}>
+          Tax Rate (%)
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            value={values.taxRatePercent}
+            onChange={(e) => setValues({ ...values, taxRatePercent: e.target.value })}
+          />
+          <span className={styles.fieldHint}>Set to 0 if you don&apos;t charge sales tax.</span>
+          {fieldErrors.taxRatePercent && (
+            <span className={styles.fieldError}>{fieldErrors.taxRatePercent}</span>
+          )}
+        </label>
+
+        <div className={styles.field}>
+          Default Gender Categories Shown
+          <div className={styles.checkboxRow}>
+            {ALLOWED_GENDERS.map((gender) => (
+              <label key={gender} className={`${styles.checkboxLabel} ${styles.genderLabel}`}>
+                <input
+                  type="checkbox"
+                  checked={values.defaultGenders.includes(gender)}
+                  onChange={() => toggleDefaultGender(gender)}
+                />
+                {gender}
+              </label>
+            ))}
+          </div>
+          {fieldErrors.defaultGenders && (
+            <span className={styles.fieldError}>{fieldErrors.defaultGenders}</span>
+          )}
+        </div>
+
+        <label className={styles.checkboxLabel}>
+          <input
+            type="checkbox"
+            checked={values.maintenanceMode}
+            onChange={(e) => setValues({ ...values, maintenanceMode: e.target.checked })}
+          />
+          Maintenance mode (public site shows a &quot;coming soon&quot; page)
+        </label>
       </section>
 
       {submitError && <p className={styles.submitError}>{submitError}</p>}

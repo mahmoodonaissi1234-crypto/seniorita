@@ -46,13 +46,20 @@ model Item {
 // Single-owner app -- one settings row (id 1) covers the signed-in
 // admin's account plus the business profile shown across the app.
 model Settings {
-  id           Int     @id @default(1)
-  ownerName    String
-  email        String
-  passwordHash String
-  businessName String
-  logoUrl      String?
-  updatedAt    DateTime @updatedAt
+  id              Int      @id @default(1)
+  ownerName       String
+  email           String
+  passwordHash    String
+  businessName    String
+  logoUrl         String?
+  // Storefront-facing preferences -- no public storefront exists yet,
+  // so these don't drive any live behavior; they're here so the
+  // storefront has somewhere to read them from once it exists.
+  currency        String   @default("USD")
+  taxRatePercent  Float    @default(0)
+  defaultGenders  String   @default("[\"men\",\"women\",\"unisex\"]")
+  maintenanceMode Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
 }
 
 model Transaction {
