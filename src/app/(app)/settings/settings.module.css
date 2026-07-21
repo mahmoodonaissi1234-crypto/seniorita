@@ -194,3 +194,57 @@
   border-radius: 8px;
   padding: 10px 14px;
 }
+
+.teamList {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.teamRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.teamRow:first-child {
+  border-top: none;
+}
+
+.teamName {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.teamEmail {
+  font-size: 0.78rem;
+  color: var(--ink);
+  opacity: 0.6;
+}
+
+.teamRole {
+  margin-left: auto;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--terracotta);
+  font-weight: 600;
+}
+
+.teamRemoveBtn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.teamRemoveBtn:hover {
+  border-color: var(--terracotta);
+  color: var(--terracotta);
+}

@@ -97,6 +97,11 @@ export function FinanceStats() {
 
     Promise.all([fetch("/api/items"), fetch(`/api/transactions${qs ? `?${qs}` : ""}`)])
       .then(async ([itemsRes, transactionsRes]) => {
+        if (transactionsRes.status === 403) {
+          const err = new Error("forbidden");
+          err.name = "ForbiddenError";
+          throw err;
+        }
         if (!itemsRes.ok || !transactionsRes.ok) {
           throw new Error("Failed to load finance data");
         }
@@ -109,8 +114,13 @@ export function FinanceStats() {
           setTransactions(transactionsData);
         }
       })
-      .catch(() => {
-        if (!ignore) setError("Couldn't load finance data. Check your connection and try again.");
+      .catch((err) => {
+        if (ignore) return;
+        if (err instanceof Error && err.name === "ForbiddenError") {
+          setError("Only the business owner can view Finance. If you need something here, ask them.");
+        } else {
+          setError("Couldn't load finance data. Check your connection and try again.");
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);

@@ -16,14 +16,16 @@ Seniorita is a small business selling nature-inspired, private-labeled rings and
 ```bash
 npm install
 npm run db:migrate   # creates the SQLite database and applies the schema
-npm run db:seed       # inserts 5 sample categories, 15 sample items, and sample transactions
+npm run db:seed       # inserts 5 sample categories, 15 items, sample transactions, and an owner + staff account
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to a login page. Sign in with:
+Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to a login page. Sign in with the seeded owner account:
 
 - **Email:** `admin@seniorita.com`
 - **Password:** `password`
+
+A seeded staff account is also available (`staff@seniorita.com` / `password`) to try the limited role — see "Roles" below.
 
 (These are seeded defaults — changing your name, email, password, or business details on the Settings page updates the account you actually log in with.)
 
@@ -50,10 +52,14 @@ src/
     (app)/              # protected dashboard shell (Home/Dashboard/Items/Categories/Finance/Settings)
     api/auth/           # login/logout API routes
   lib/
-    auth.ts             # session cookie + credential check (against the Settings row)
+    auth.ts             # session cookie verification + getCurrentUser()
+    session.ts           # signed session token create/verify
+    password.ts          # password hashing (shared by auth + user creation)
+    roles.ts              # owner/staff role constants
+    users.ts              # staff-account validation
     db.ts                # Prisma client singleton
     items.ts             # helpers for the Item.images JSON field
-    settings.ts          # password hashing + Settings validation
+    settings.ts          # Settings (business profile) validation
   proxy.ts               # route protection (redirects unauthenticated users to /login)
 ```
 
@@ -64,9 +70,16 @@ The database is SQLite, stored locally as `dev.db` (gitignored — each machine 
 - **Category**: `id`, `name`, `gender` (men/women/unisex), `description`, `createdAt`
 - **Item**: `id`, `name`, `category` (FK), `gender`, `type` (ring/bracelet), `price`, `material`, `natureTheme`, `description`, `images` (JSON array of image paths), `stock`, `isActive`, `createdAt`
 - **Transaction**: `id`, `type` (sale/expense), `amount`, `description`, `date`, `item` (optional FK), `createdAt` — see "Finance scope" below
-- **Settings**: single-row (id 1) table for the signed-in admin's account and business profile — `ownerName`, `email`, `passwordHash`, `businessName`, `logoUrl` (a data URL), `updatedAt`. Login credentials are checked against this row instead of a hardcoded value, so changing your password in Settings actually takes effect. Also holds storefront-facing preferences (`currency`, `taxRatePercent`, `defaultGenders` JSON array, `maintenanceMode`) — these don't drive any live behavior yet since there's no public storefront, but the Settings page lets you configure them ahead of one existing.
+- **User**: `id`, `name`, `email` (unique), `passwordHash`, `role` (owner/staff), `createdAt` — login accounts. Login checks credentials against this table, so changing your password on the Settings page actually takes effect.
+- **Settings**: single-row (id 1) table for the business profile, shared by whoever can see it — `businessName`, `logoUrl` (a data URL), `updatedAt`. Also holds storefront-facing preferences (`currency`, `taxRatePercent`, `defaultGenders` JSON array, `maintenanceMode`) — these don't drive any live behavior yet since there's no public storefront, but the Settings page lets you configure them ahead of one existing.
 
 After pulling changes that touch `prisma/schema.prisma`, re-run `npm run db:migrate` to apply them to your local database.
+
+### Roles
+
+Decided in TICKET-118: two roles, **owner** and **staff**. Staff can view/edit Items and Categories, but not Finance or Settings — this is enforced in the API routes themselves (`/api/transactions`, `/api/settings`, `/api/users` all check the signed-in user's role and return 403 for staff), not just by hiding the nav links, so it holds even if someone calls those endpoints directly. The session cookie only carries a signed user ID; the role is always looked up fresh from the database on each request; it's never trusted from anything the client sends.
+
+Owners manage staff accounts from the Team section at the bottom of Settings (add/remove; an owner account can't be removed, including your own).
 
 ### Finance scope
 

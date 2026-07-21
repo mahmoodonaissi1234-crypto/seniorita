@@ -37,19 +37,23 @@ model Item {
   transactions Transaction[]
 }
 
-// Finance scope decision (TICKET-102): tracks sales and expenses, not
-// inventory value (already shown on the Dashboard) and not orders/carts
-// (no storefront exists yet, so sales are logged manually). `itemId` is
-// optional and singular -- a transaction can reference at most one
-// catalog item; multi-item orders are out of scope until there's an
-// actual storefront generating them.
-// Single-owner app -- one settings row (id 1) covers the signed-in
-// admin's account plus the business profile shown across the app.
+// Login accounts (TICKET-118). role gates access: "owner" can reach
+// everything, "staff" can view/edit Items and Categories but not
+// Finance or Settings -- enforced in the API routes, not just the UI.
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("staff")
+  createdAt    DateTime @default(now())
+}
+
+// Business-wide profile and storefront preferences -- one row (id 1),
+// shared by whoever is logged in with permission to see it. No longer
+// holds login credentials; those live on User now (TICKET-118).
 model Settings {
   id              Int      @id @default(1)
-  ownerName       String
-  email           String
-  passwordHash    String
   businessName    String
   logoUrl         String?
   // Storefront-facing preferences -- no public storefront exists yet,
@@ -62,6 +66,12 @@ model Settings {
   updatedAt       DateTime @updatedAt
 }
 
+// Finance scope decision (TICKET-102): tracks sales and expenses, not
+// inventory value (already shown on the Dashboard) and not orders/carts
+// (no storefront exists yet, so sales are logged manually). `itemId` is
+// optional and singular -- a transaction can reference at most one
+// catalog item; multi-item orders are out of scope until there's an
+// actual storefront generating them.
 model Transaction {
   id          Int      @id @default(autoincrement())
   type        String
