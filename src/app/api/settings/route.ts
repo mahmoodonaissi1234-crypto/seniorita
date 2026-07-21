@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { validateAccountInput, validateBusinessInput } from "@/lib/settings";
 import { parseGenders } from "@/lib/storePreferences";
+import { logActivity } from "@/lib/activityLog";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser(request);
@@ -75,6 +76,8 @@ export async function PUT(request: NextRequest) {
     where: { id: 1 },
     data: businessResult.data,
   });
+
+  await logActivity(user, "edited", "settings", updatedSettings.id);
 
   return NextResponse.json({
     ownerName: updatedUser.name,

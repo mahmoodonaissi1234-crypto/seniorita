@@ -199,6 +199,7 @@ const itemsByCategory: Record<
 };
 
 async function main() {
+  await prisma.activityLog.deleteMany();
   await prisma.transaction.deleteMany();
   await prisma.item.deleteMany();
   await prisma.category.deleteMany();

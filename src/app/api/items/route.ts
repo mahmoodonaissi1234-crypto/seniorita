@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { validateItemInput } from "@/lib/items";
+import { logActivity } from "@/lib/activityLog";
 import type { Prisma } from "@/generated/prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -32,6 +34,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const user = await getCurrentUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => null);
   const result = validateItemInput(body);
 
@@ -50,5 +57,6 @@ export async function POST(request: NextRequest) {
     data: result.data,
     include: { category: true },
   });
+  await logActivity(user, "created", "item", item.id);
   return NextResponse.json(item, { status: 201 });
 }

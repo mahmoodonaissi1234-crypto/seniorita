@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { validateNewUserInput } from "@/lib/users";
+import { logActivity } from "@/lib/activityLog";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser(request);
@@ -43,6 +44,8 @@ export async function POST(request: NextRequest) {
     },
     select: { id: true, name: true, email: true, role: true, createdAt: true },
   });
+
+  await logActivity(user, "created", "user", created.id);
 
   return NextResponse.json(created, { status: 201 });
 }

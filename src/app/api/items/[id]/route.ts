@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { validateItemInput } from "@/lib/items";
+import { logActivity } from "@/lib/activityLog";
 
 function parseId(idParam: string): number | null {
   const id = Number(idParam);
@@ -32,6 +34,11 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getCurrentUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
   const { id: idParam } = await params;
   const id = parseId(idParam);
   if (id === null) {
@@ -61,6 +68,7 @@ export async function PUT(
     data: result.data,
     include: { category: true },
   });
+  await logActivity(user, "edited", "item", item.id);
   return NextResponse.json(item);
 }
 
@@ -68,6 +76,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getCurrentUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
   const { id: idParam } = await params;
   const id = parseId(idParam);
   if (id === null) {
@@ -80,5 +93,6 @@ export async function DELETE(
   }
 
   await prisma.item.delete({ where: { id } });
+  await logActivity(user, "deleted", "item", id);
   return NextResponse.json({ ok: true });
 }

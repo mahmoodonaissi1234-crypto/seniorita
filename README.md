@@ -49,7 +49,7 @@ prisma/
 src/
   app/
     login/             # public login page
-    (app)/              # protected dashboard shell (Home/Dashboard/Items/Categories/Finance/Settings)
+    (app)/              # protected dashboard shell (Home/Dashboard/Items/Categories/Finance/Activity Log/Settings)
     api/auth/           # login/logout API routes
   lib/
     auth.ts             # session cookie verification + getCurrentUser()
@@ -57,6 +57,7 @@ src/
     password.ts          # password hashing (shared by auth + user creation)
     roles.ts              # owner/staff role constants
     users.ts              # staff-account validation
+    activityLog.ts        # logActivity() helper, called from every mutating API route
     db.ts                # Prisma client singleton
     items.ts             # helpers for the Item.images JSON field
     settings.ts          # Settings (business profile) validation
@@ -72,6 +73,7 @@ The database is SQLite, stored locally as `dev.db` (gitignored — each machine 
 - **Transaction**: `id`, `type` (sale/expense), `amount`, `description`, `date`, `item` (optional FK), `createdAt` — see "Finance scope" below
 - **User**: `id`, `name`, `email` (unique), `passwordHash`, `role` (owner/staff), `createdAt` — login accounts. Login checks credentials against this table, so changing your password on the Settings page actually takes effect.
 - **Settings**: single-row (id 1) table for the business profile, shared by whoever can see it — `businessName`, `logoUrl` (a data URL), `updatedAt`. Also holds storefront-facing preferences (`currency`, `taxRatePercent`, `defaultGenders` JSON array, `maintenanceMode`) — these don't drive any live behavior yet since there's no public storefront, but the Settings page lets you configure them ahead of one existing.
+- **ActivityLog**: `id`, `user` (optional FK, SET NULL if the account is later removed), `userName` (a snapshot, so entries stay readable after that), `action` (created/edited/deleted), `entityType` (category/item/settings/user), `entityId`, `timestamp` — see "Activity log" below.
 
 After pulling changes that touch `prisma/schema.prisma`, re-run `npm run db:migrate` to apply them to your local database.
 
@@ -80,6 +82,10 @@ After pulling changes that touch `prisma/schema.prisma`, re-run `npm run db:migr
 Decided in TICKET-118: two roles, **owner** and **staff**. Staff can view/edit Items and Categories, but not Finance or Settings — this is enforced in the API routes themselves (`/api/transactions`, `/api/settings`, `/api/users` all check the signed-in user's role and return 403 for staff), not just by hiding the nav links, so it holds even if someone calls those endpoints directly. The session cookie only carries a signed user ID; the role is always looked up fresh from the database on each request; it's never trusted from anything the client sends.
 
 Owners manage staff accounts from the Team section at the bottom of Settings (add/remove; an owner account can't be removed, including your own).
+
+### Activity log
+
+Added in TICKET-119. Every mutating API route (create/edit/delete on Categories and Items, saving Settings, adding/removing a staff account) calls `logActivity()` after the change succeeds, recording who did it, what kind of action, what type of thing, and its id. The Activity Log page (owner-only, same 403-enforced pattern as Finance/Settings) lists these, filterable by user and date range. It starts empty on a fresh install/reseed rather than being pre-populated with fake history.
 
 ### Finance scope
 

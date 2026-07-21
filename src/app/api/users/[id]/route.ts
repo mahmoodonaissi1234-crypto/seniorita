@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logActivity } from "@/lib/activityLog";
 
 function parseId(idParam: string): number | null {
   const id = Number(idParam);
@@ -35,5 +36,6 @@ export async function DELETE(
   }
 
   await prisma.user.delete({ where: { id } });
+  await logActivity(user, "deleted", "user", id);
   return NextResponse.json({ ok: true });
 }
