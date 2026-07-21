@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/items", label: "Items" },
   { href: "/categories", label: "Categories" },
   { href: "/finance", label: "Finance", ownerOnly: true },
+  { href: "/activity", label: "Activity Log", ownerOnly: true },
   { href: "/settings", label: "Settings", ownerOnly: true },
 ];
 

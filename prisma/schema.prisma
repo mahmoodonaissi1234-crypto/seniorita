@@ -41,12 +41,13 @@ model Item {
 // everything, "staff" can view/edit Items and Categories but not
 // Finance or Settings -- enforced in the API routes, not just the UI.
 model User {
-  id           Int      @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
   name         String
-  email        String   @unique
+  email        String        @unique
   passwordHash String
-  role         String   @default("staff")
-  createdAt    DateTime @default(now())
+  role         String        @default("staff")
+  createdAt    DateTime      @default(now())
+  activityLogs ActivityLog[]
 }
 
 // Business-wide profile and storefront preferences -- one row (id 1),
@@ -64,6 +65,21 @@ model Settings {
   defaultGenders  String   @default("[\"men\",\"women\",\"unisex\"]")
   maintenanceMode Boolean  @default(false)
   updatedAt       DateTime @updatedAt
+}
+
+// Accountability trail (TICKET-119): who changed what. userName is a
+// snapshot taken at the time of the action so log entries stay readable
+// even after a staff account is removed -- userId is kept too (nullable,
+// SET NULL on delete) for filtering by a still-existing user.
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName   String
+  action     String
+  entityType String
+  entityId   Int
+  timestamp  DateTime @default(now())
 }
 
 // Finance scope decision (TICKET-102): tracks sales and expenses, not

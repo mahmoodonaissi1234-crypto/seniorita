@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { validateCategoryInput } from "@/lib/categories";
+import { logActivity } from "@/lib/activityLog";
 
 export async function GET() {
   const categories = await prisma.category.findMany({
@@ -11,6 +13,11 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const user = await getCurrentUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => null);
   const result = validateCategoryInput(body);
 
@@ -19,5 +26,6 @@ export async function POST(request: NextRequest) {
   }
 
   const category = await prisma.category.create({ data: result.data });
+  await logActivity(user, "created", "category", category.id);
   return NextResponse.json(category, { status: 201 });
 }
