@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import Script from "next/script";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,8 +33,24 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable}`}
+      suppressHydrationWarning
     >
-      <body>{children}</body>
+      <body>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`
+            (function () {
+              try {
+                var stored = localStorage.getItem("theme");
+                if (stored === "light" || stored === "dark") {
+                  document.documentElement.setAttribute("data-theme", stored);
+                }
+              } catch (e) {}
+            })();
+          `}
+        </Script>
+        <ThemeToggle />
+        {children}
+      </body>
     </html>
   );
 }

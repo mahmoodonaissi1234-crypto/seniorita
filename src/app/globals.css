@@ -27,6 +27,35 @@
   }
 }
 
+/* Explicit user choice (via the theme toggle) wins over the system
+   preference above -- the attribute selector's higher specificity
+   overrides the plain :root inside the media query either way. */
+:root[data-theme="dark"] {
+  --background: #1d1712;
+  --foreground: #f2e9da;
+  --sage: #c9925f;
+  --sage-dark: #b97b4e;
+  --terracotta: #cc8a63;
+  --cream: #29211a;
+  --cream-dark: #332922;
+  --border: #4a3b2c;
+  --ink: #f2e9da;
+}
+
+:root[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #3b2a1f;
+  --sage: #7a5233;
+  --sage-dark: #4a3222;
+  --sage-light: #e6d7c3;
+  --terracotta: #9c5233;
+  --gold: #8c6239;
+  --cream: #ffffff;
+  --cream-dark: #f6f1e8;
+  --ink: #3b2a1f;
+  --border: #e3d8c8;
+}
+
 html {
   height: 100%;
 }
@@ -67,4 +96,12 @@ button {
   html {
     color-scheme: dark;
   }
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
 }
