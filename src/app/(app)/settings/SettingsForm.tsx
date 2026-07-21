@@ -33,6 +33,13 @@ type FormValues = {
 
 type FieldErrors = Partial<Record<keyof FormValues, string>>;
 
+type TeamMember = {
+  id: number;
+  name: string;
+  email: string;
+  role: "owner" | "staff";
+};
+
 const EMPTY_FORM: FormValues = {
   ownerName: "",
   email: "",
@@ -54,7 +61,8 @@ function validate(values: FormValues): FieldErrors {
   if (!values.email.trim() || !values.email.includes("@")) {
     errors.email = "A valid email is required";
   }
-  if (!values.businessName.trim()) errors.businessName = "Business name is required";
+  if (!values.businessName.trim())
+    errors.businessName = "Business name is required";
 
   const taxRate = Number(values.taxRatePercent);
   if (!Number.isFinite(taxRate) || taxRate < 0 || taxRate > 100) {
@@ -84,6 +92,7 @@ export function SettingsForm() {
   const [values, setValues] = useState<FormValues>(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -92,11 +101,25 @@ export function SettingsForm() {
   const [toast, setToast] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [users, setUsers] = useState<TeamMember[]>([]);
+  const [newStaff, setNewStaff] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
+  const [staffError, setStaffError] = useState<string | null>(null);
+  const [addingStaff, setAddingStaff] = useState(false);
+
   useEffect(() => {
     let ignore = false;
 
     fetch("/api/settings")
-      .then((res) => {
+      .then(async (res) => {
+        if (res.status === 403) {
+          const err = new Error("forbidden");
+          err.name = "ForbiddenError";
+          throw err;
+        }
         if (!res.ok) throw new Error("Failed to load settings");
         return res.json();
       })
@@ -109,7 +132,9 @@ export function SettingsForm() {
             logoUrl: data.logoUrl,
             currency: (data.currency as Currency) ?? "USD",
             taxRatePercent: String(data.taxRatePercent ?? 0),
-            defaultGenders: (data.defaultGenders as Gender[]) ?? [...ALLOWED_GENDERS],
+            defaultGenders: (data.defaultGenders as Gender[]) ?? [
+              ...ALLOWED_GENDERS,
+            ],
             maintenanceMode: data.maintenanceMode ?? false,
             currentPassword: "",
             newPassword: "",
@@ -117,11 +142,27 @@ export function SettingsForm() {
           });
         }
       })
-      .catch(() => {
-        if (!ignore) setLoadError("Couldn't load settings. Check your connection and try again.");
+      .catch((err) => {
+        if (ignore) return;
+        if (err instanceof Error && err.name === "ForbiddenError") {
+          setForbidden(true);
+        } else {
+          setLoadError(
+            "Couldn't load settings. Check your connection and try again.",
+          );
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);
+      });
+
+    fetch("/api/users")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: TeamMember[]) => {
+        if (!ignore) setUsers(data);
+      })
+      .catch(() => {
+        /* Team section just stays empty; not critical to the rest of the page working */
       });
 
     return () => {
@@ -153,6 +194,43 @@ export function SettingsForm() {
         ? prev.defaultGenders.filter((g) => g !== gender)
         : [...prev.defaultGenders, gender],
     }));
+  }
+
+  async function handleAddStaff(event: React.FormEvent) {
+    event.preventDefault();
+    setStaffError(null);
+    setAddingStaff(true);
+
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newStaff),
+    });
+    const data = await res.json();
+    setAddingStaff(false);
+
+    if (!res.ok) {
+      setStaffError(data.error ?? "Failed to add staff member");
+      return;
+    }
+
+    setUsers((prev) => [...prev, data]);
+    setNewStaff({ name: "", email: "", password: "" });
+    setToast("Staff member added");
+  }
+
+  async function handleRemoveStaff(id: number) {
+    setStaffError(null);
+    const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setStaffError(data.error ?? "Failed to remove staff member");
+      return;
+    }
+
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+    setToast("Staff member removed");
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -202,6 +280,17 @@ export function SettingsForm() {
     return <p className={styles.state}>Loading settings...</p>;
   }
 
+  if (forbidden) {
+    return (
+      <div className={styles.state}>
+        <p>
+          Only the business owner can view Settings. If you need something
+          changed here, ask them.
+        </p>
+      </div>
+    );
+  }
+
   if (loadError) {
     return (
       <div className={styles.state}>
@@ -221,186 +310,296 @@ export function SettingsForm() {
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} noValidate>
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Account</h2>
+    <div className={styles.form}>
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Account</h2>
+
+          <label className={styles.field}>
+            Name
+            <input
+              value={values.ownerName}
+              onChange={(e) =>
+                setValues({ ...values, ownerName: e.target.value })
+              }
+            />
+            {fieldErrors.ownerName && (
+              <span className={styles.fieldError}>{fieldErrors.ownerName}</span>
+            )}
+          </label>
+
+          <label className={styles.field}>
+            Email
+            <input
+              type="email"
+              value={values.email}
+              onChange={(e) => setValues({ ...values, email: e.target.value })}
+            />
+            {fieldErrors.email && (
+              <span className={styles.fieldError}>{fieldErrors.email}</span>
+            )}
+          </label>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Change Password</h2>
+
+          <label className={styles.field}>
+            Current Password
+            <input
+              type="password"
+              value={values.currentPassword}
+              onChange={(e) =>
+                setValues({ ...values, currentPassword: e.target.value })
+              }
+            />
+            {fieldErrors.currentPassword && (
+              <span className={styles.fieldError}>
+                {fieldErrors.currentPassword}
+              </span>
+            )}
+          </label>
+
+          <label className={styles.field}>
+            New Password
+            <input
+              type="password"
+              value={values.newPassword}
+              onChange={(e) =>
+                setValues({ ...values, newPassword: e.target.value })
+              }
+            />
+            {fieldErrors.newPassword && (
+              <span className={styles.fieldError}>
+                {fieldErrors.newPassword}
+              </span>
+            )}
+          </label>
+
+          <label className={styles.field}>
+            Confirm New Password
+            <input
+              type="password"
+              value={values.confirmPassword}
+              onChange={(e) =>
+                setValues({ ...values, confirmPassword: e.target.value })
+              }
+            />
+            {fieldErrors.confirmPassword && (
+              <span className={styles.fieldError}>
+                {fieldErrors.confirmPassword}
+              </span>
+            )}
+          </label>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Business</h2>
+
+          <label className={styles.field}>
+            Business Name
+            <input
+              value={values.businessName}
+              onChange={(e) =>
+                setValues({ ...values, businessName: e.target.value })
+              }
+            />
+            {fieldErrors.businessName && (
+              <span className={styles.fieldError}>
+                {fieldErrors.businessName}
+              </span>
+            )}
+          </label>
+
+          <div className={styles.field}>
+            Logo
+            <div className={styles.logoRow}>
+              {values.logoUrl ? (
+                <Image
+                  src={values.logoUrl}
+                  alt="Business logo"
+                  width={64}
+                  height={64}
+                  unoptimized
+                  className={styles.logoPreview}
+                />
+              ) : (
+                <div className={styles.logoPlaceholder}>No logo</div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLogoChange}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Store Preferences</h2>
+          <p className={styles.sectionNote}>
+            These control the public storefront once it exists — they don&apos;t
+            affect the admin app you&apos;re using now.
+          </p>
+
+          <label className={styles.field}>
+            Currency
+            <select
+              value={values.currency}
+              onChange={(e) =>
+                setValues({ ...values, currency: e.target.value as Currency })
+              }
+            >
+              {ALLOWED_CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
+            Tax Rate (%)
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={values.taxRatePercent}
+              onChange={(e) =>
+                setValues({ ...values, taxRatePercent: e.target.value })
+              }
+            />
+            <span className={styles.fieldHint}>
+              Set to 0 if you don&apos;t charge sales tax.
+            </span>
+            {fieldErrors.taxRatePercent && (
+              <span className={styles.fieldError}>
+                {fieldErrors.taxRatePercent}
+              </span>
+            )}
+          </label>
+
+          <div className={styles.field}>
+            Default Gender Categories Shown
+            <div className={styles.checkboxRow}>
+              {ALLOWED_GENDERS.map((gender) => (
+                <label
+                  key={gender}
+                  className={`${styles.checkboxLabel} ${styles.genderLabel}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={values.defaultGenders.includes(gender)}
+                    onChange={() => toggleDefaultGender(gender)}
+                  />
+                  {gender}
+                </label>
+              ))}
+            </div>
+            {fieldErrors.defaultGenders && (
+              <span className={styles.fieldError}>
+                {fieldErrors.defaultGenders}
+              </span>
+            )}
+          </div>
+
+          <label className={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              checked={values.maintenanceMode}
+              onChange={(e) =>
+                setValues({ ...values, maintenanceMode: e.target.checked })
+              }
+            />
+            Maintenance mode (public site shows a &quot;coming soon&quot; page)
+          </label>
+        </section>
+
+        {submitError && <p className={styles.submitError}>{submitError}</p>}
+
+        <div className={styles.actions}>
+          <button type="submit" className={styles.saveBtn} disabled={saving}>
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+
+        {toast && <div className={styles.toast}>{toast}</div>}
+      </form>
+
+      <form className={styles.section} onSubmit={handleAddStaff} noValidate>
+        <h2 className={styles.sectionTitle}>Team</h2>
+        <p className={styles.sectionNote}>
+          Staff accounts can view and edit Items and Categories, but not Finance
+          or Settings.
+        </p>
+
+        {users.length > 0 && (
+          <ul className={styles.teamList}>
+            {users.map((member) => (
+              <li key={member.id} className={styles.teamRow}>
+                <div>
+                  <div className={styles.teamName}>{member.name}</div>
+                  <div className={styles.teamEmail}>{member.email}</div>
+                </div>
+                <span className={styles.teamRole}>{member.role}</span>
+                {member.role === "staff" && (
+                  <button
+                    type="button"
+                    className={styles.teamRemoveBtn}
+                    onClick={() => handleRemoveStaff(member.id)}
+                  >
+                    Remove
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
 
         <label className={styles.field}>
           Name
           <input
-            value={values.ownerName}
-            onChange={(e) => setValues({ ...values, ownerName: e.target.value })}
+            value={newStaff.name}
+            onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
           />
-          {fieldErrors.ownerName && (
-            <span className={styles.fieldError}>{fieldErrors.ownerName}</span>
-          )}
         </label>
 
         <label className={styles.field}>
           Email
           <input
             type="email"
-            value={values.email}
-            onChange={(e) => setValues({ ...values, email: e.target.value })}
+            value={newStaff.email}
+            onChange={(e) =>
+              setNewStaff({ ...newStaff, email: e.target.value })
+            }
           />
-          {fieldErrors.email && <span className={styles.fieldError}>{fieldErrors.email}</span>}
         </label>
-      </section>
-
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Change Password</h2>
 
         <label className={styles.field}>
-          Current Password
+          Password
           <input
             type="password"
-            value={values.currentPassword}
-            onChange={(e) => setValues({ ...values, currentPassword: e.target.value })}
+            value={newStaff.password}
+            onChange={(e) =>
+              setNewStaff({ ...newStaff, password: e.target.value })
+            }
           />
-          {fieldErrors.currentPassword && (
-            <span className={styles.fieldError}>{fieldErrors.currentPassword}</span>
-          )}
         </label>
 
-        <label className={styles.field}>
-          New Password
-          <input
-            type="password"
-            value={values.newPassword}
-            onChange={(e) => setValues({ ...values, newPassword: e.target.value })}
-          />
-          {fieldErrors.newPassword && (
-            <span className={styles.fieldError}>{fieldErrors.newPassword}</span>
-          )}
-        </label>
+        {staffError && <p className={styles.submitError}>{staffError}</p>}
 
-        <label className={styles.field}>
-          Confirm New Password
-          <input
-            type="password"
-            value={values.confirmPassword}
-            onChange={(e) => setValues({ ...values, confirmPassword: e.target.value })}
-          />
-          {fieldErrors.confirmPassword && (
-            <span className={styles.fieldError}>{fieldErrors.confirmPassword}</span>
-          )}
-        </label>
-      </section>
-
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Business</h2>
-
-        <label className={styles.field}>
-          Business Name
-          <input
-            value={values.businessName}
-            onChange={(e) => setValues({ ...values, businessName: e.target.value })}
-          />
-          {fieldErrors.businessName && (
-            <span className={styles.fieldError}>{fieldErrors.businessName}</span>
-          )}
-        </label>
-
-        <div className={styles.field}>
-          Logo
-          <div className={styles.logoRow}>
-            {values.logoUrl ? (
-              <Image
-                src={values.logoUrl}
-                alt="Business logo"
-                width={64}
-                height={64}
-                unoptimized
-                className={styles.logoPreview}
-              />
-            ) : (
-              <div className={styles.logoPlaceholder}>No logo</div>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleLogoChange}
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Store Preferences</h2>
-        <p className={styles.sectionNote}>
-          These control the public storefront once it exists — they don&apos;t affect the admin
-          app you&apos;re using now.
-        </p>
-
-        <label className={styles.field}>
-          Currency
-          <select
-            value={values.currency}
-            onChange={(e) => setValues({ ...values, currency: e.target.value as Currency })}
+        <div className={styles.actions}>
+          <button
+            type="submit"
+            className={styles.saveBtn}
+            disabled={addingStaff}
           >
-            {ALLOWED_CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className={styles.field}>
-          Tax Rate (%)
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.01"
-            value={values.taxRatePercent}
-            onChange={(e) => setValues({ ...values, taxRatePercent: e.target.value })}
-          />
-          <span className={styles.fieldHint}>Set to 0 if you don&apos;t charge sales tax.</span>
-          {fieldErrors.taxRatePercent && (
-            <span className={styles.fieldError}>{fieldErrors.taxRatePercent}</span>
-          )}
-        </label>
-
-        <div className={styles.field}>
-          Default Gender Categories Shown
-          <div className={styles.checkboxRow}>
-            {ALLOWED_GENDERS.map((gender) => (
-              <label key={gender} className={`${styles.checkboxLabel} ${styles.genderLabel}`}>
-                <input
-                  type="checkbox"
-                  checked={values.defaultGenders.includes(gender)}
-                  onChange={() => toggleDefaultGender(gender)}
-                />
-                {gender}
-              </label>
-            ))}
-          </div>
-          {fieldErrors.defaultGenders && (
-            <span className={styles.fieldError}>{fieldErrors.defaultGenders}</span>
-          )}
+            {addingStaff ? "Adding..." : "Add Staff Member"}
+          </button>
         </div>
-
-        <label className={styles.checkboxLabel}>
-          <input
-            type="checkbox"
-            checked={values.maintenanceMode}
-            onChange={(e) => setValues({ ...values, maintenanceMode: e.target.checked })}
-          />
-          Maintenance mode (public site shows a &quot;coming soon&quot; page)
-        </label>
-      </section>
-
-      {submitError && <p className={styles.submitError}>{submitError}</p>}
-
-      <div className={styles.actions}>
-        <button type="submit" className={styles.saveBtn} disabled={saving}>
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-      </div>
-
-      {toast && <div className={styles.toast}>{toast}</div>}
-    </form>
+      </form>
+    </div>
   );
 }

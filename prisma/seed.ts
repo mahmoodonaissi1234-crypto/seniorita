@@ -2,7 +2,7 @@ import "../scripts/load-turso-env";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { serializeImages } from "../src/lib/items";
-import { hashPassword } from "../src/lib/settings";
+import { hashPassword } from "../src/lib/password";
 
 const adapter = new PrismaLibSql({
   url: process.env.DATABASE_URL ?? "file:./dev.db",
@@ -203,13 +203,29 @@ async function main() {
   await prisma.item.deleteMany();
   await prisma.category.deleteMany();
   await prisma.settings.deleteMany();
+  await prisma.user.deleteMany();
+
+  await prisma.user.create({
+    data: {
+      name: "Admin",
+      email: "admin@seniorita.com",
+      passwordHash: hashPassword("password"),
+      role: "owner",
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      name: "Staff Member",
+      email: "staff@seniorita.com",
+      passwordHash: hashPassword("password"),
+      role: "staff",
+    },
+  });
 
   await prisma.settings.create({
     data: {
       id: 1,
-      ownerName: "Admin",
-      email: "admin@seniorita.com",
-      passwordHash: hashPassword("password"),
       businessName: "Seniorita",
       logoUrl: null,
     },
@@ -290,8 +306,9 @@ async function main() {
   const categoryCount = await prisma.category.count();
   const itemCount = await prisma.item.count();
   const transactionCount = await prisma.transaction.count();
+  const userCount = await prisma.user.count();
   console.log(
-    `Seeded ${categoryCount} categories, ${itemCount} items, and ${transactionCount} transactions.`
+    `Seeded ${categoryCount} categories, ${itemCount} items, ${transactionCount} transactions, and ${userCount} users.`
   );
 }
 
