@@ -1,0 +1,180 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header h1 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  color: var(--sage-dark);
+}
+
+.header p {
+  color: var(--ink);
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.formatBox {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.formatBox h2 {
+  font-size: 1.1rem;
+  color: var(--sage-dark);
+  margin-bottom: 8px;
+}
+
+.formatBox p {
+  font-size: 0.85rem;
+  color: var(--ink);
+  opacity: 0.75;
+  margin-bottom: 12px;
+}
+
+.formatTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.formatTable th,
+.formatTable td {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: var(--ink);
+  border-top: 1px solid var(--border);
+}
+
+.formatTable thead th {
+  border-top: none;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.6;
+  font-weight: 600;
+}
+
+.uploadBox {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.fileLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.fileName {
+  font-size: 0.85rem;
+  color: var(--ink);
+  opacity: 0.7;
+}
+
+.validateBtn,
+.commitBtn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  background: var(--sage-dark);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.validateBtn:hover,
+.commitBtn:hover {
+  background: var(--sage);
+}
+
+.validateBtn:disabled,
+.commitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: var(--terracotta);
+  font-size: 0.9rem;
+}
+
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.summary {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.reportTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.reportTable th,
+.reportTable td {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--ink);
+  border-top: 1px solid var(--border);
+}
+
+.reportTable thead th {
+  border-top: none;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.6;
+  font-weight: 600;
+}
+
+.statusError {
+  color: var(--terracotta);
+  font-weight: 600;
+}
+
+.statusOk {
+  color: var(--sage-dark);
+  font-weight: 600;
+}
+
+.noneValid {
+  color: var(--terracotta);
+  font-size: 0.9rem;
+}
+
+.backLink {
+  color: var(--sage-dark);
+  font-weight: 600;
+  font-size: 0.9rem;
+  width: fit-content;
+}
