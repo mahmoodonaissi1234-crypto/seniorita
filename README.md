@@ -51,6 +51,8 @@ src/
     login/             # public login page
     (app)/              # protected dashboard shell (Home/Dashboard/Items/Categories/Finance/Activity Log/Settings)
     api/auth/           # login/logout API routes
+  components/
+    Toast/               # app-wide toast notifications (see "Toast notifications" below)
   lib/
     auth.ts             # session cookie verification + getCurrentUser()
     session.ts           # signed session token create/verify
@@ -106,6 +108,10 @@ Added in TICKET-122. Both `GET /api/items` and `GET /api/transactions` accept `?
 ### Low stock alerts
 
 Added in TICKET-123. The threshold is configurable two ways: a global default in Settings → Inventory (`Settings.lowStockThreshold`, defaults to 5), and an optional per-item override (`Item.lowStockThreshold`) set on that item's edit form — an item is "low stock" when its stock is below its own override if it has one, otherwise below the global default. `GET /api/settings/low-stock-threshold` exposes just that one number to any signed-in user (unlike the rest of Settings, which is owner-only), so staff can still see the Dashboard's low-stock banner. The Dashboard shows a "Low Stock" card (a count) and a banner listing every low-stock item with its current stock and effective threshold, each linking to that item's edit form. There's no email infrastructure yet, so the "send a notification" part is stubbed: `src/lib/notifications.ts` just logs what it would have sent, called whenever an item is created or edited (individually or via CSV import) and ends up under its threshold.
+
+### Toast notifications
+
+Added in TICKET-124. `<ToastProvider>` (wrapping the whole app in the root layout) exposes a `useToast()` hook with `success`/`error`/`warning`/`info` methods; calling any of them stacks a dismissible toast bottom-right that auto-clears after ~3.5s. This replaced three near-identical hand-rolled `toast` state + `setTimeout` implementations that had been copy-pasted across the Items, Categories, and Settings pages — those now all call the shared hook instead. Inline, field-level validation errors (shown next to a specific input, or inside a still-open modal so the user can see what to fix) are left as-is; toasts are for the transient "did the action succeed" feedback, not form validation.
 
 ### Finance scope
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Gender } from "@/lib/categories";
+import { useToast } from "@/components/Toast/ToastProvider";
 import { CategoryModal, type CategoryFormValues } from "./CategoryModal";
 import { DeleteCategoryModal } from "./DeleteCategoryModal";
 import styles from "./categories.module.css";
@@ -23,11 +24,10 @@ export function CategoriesTable() {
   const [categories, setCategories] = useState<Category[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [modal, setModal] = useState<ModalState>(null);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     let ignore = false;
@@ -52,15 +52,8 @@ export function CategoriesTable() {
     };
   }, [refreshKey]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const id = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(id);
-  }, [toast]);
-
   async function handleConfirmDelete() {
     if (!deleteTarget) return;
-    setActionError(null);
 
     const res = await fetch(`/api/categories/${deleteTarget.id}`, { method: "DELETE" });
     const data = await res.json();
@@ -71,7 +64,7 @@ export function CategoriesTable() {
 
     setCategories((prev) => prev?.filter((c) => c.id !== deleteTarget.id) ?? null);
     setDeleteTarget(null);
-    setToast("Category deleted");
+    toast.success("Category deleted");
   }
 
   async function handleModalSubmit(values: CategoryFormValues) {
@@ -91,7 +84,7 @@ export function CategoriesTable() {
     }
 
     setModal(null);
-    setToast(isEdit ? "Category updated" : "Category created");
+    toast.success(isEdit ? "Category updated" : "Category created");
     setRefreshKey((k) => k + 1);
   }
 
@@ -102,9 +95,6 @@ export function CategoriesTable() {
           New Category
         </button>
       </div>
-
-      {toast && <p className={styles.toast}>{toast}</p>}
-      {actionError && <p className={styles.actionError}>{actionError}</p>}
 
       {loading ? (
         <p className={styles.state}>Loading categories...</p>

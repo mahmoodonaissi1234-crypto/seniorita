@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { ALLOWED_GENDERS, type Gender } from "@/lib/categories";
 import { ALLOWED_CURRENCIES, type Currency } from "@/lib/storePreferences";
+import { useToast } from "@/components/Toast/ToastProvider";
 import styles from "./settings.module.css";
 
 type Settings = {
@@ -106,7 +107,7 @@ export function SettingsForm() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [users, setUsers] = useState<TeamMember[]>([]);
@@ -179,12 +180,6 @@ export function SettingsForm() {
     };
   }, [refreshKey]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const id = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(id);
-  }, [toast]);
-
   function handleLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -225,7 +220,7 @@ export function SettingsForm() {
 
     setUsers((prev) => [...prev, data]);
     setNewStaff({ name: "", email: "", password: "" });
-    setToast("Staff member added");
+    toast.success("Staff member added");
   }
 
   async function handleRemoveStaff(id: number) {
@@ -239,7 +234,7 @@ export function SettingsForm() {
     }
 
     setUsers((prev) => prev.filter((u) => u.id !== id));
-    setToast("Staff member removed");
+    toast.success("Staff member removed");
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -283,7 +278,7 @@ export function SettingsForm() {
       confirmPassword: "",
     }));
     if (fileInputRef.current) fileInputRef.current.value = "";
-    setToast("Settings saved");
+    toast.success("Settings saved");
   }
 
   if (loading) {
@@ -562,7 +557,6 @@ export function SettingsForm() {
           </button>
         </div>
 
-        {toast && <div className={styles.toast}>{toast}</div>}
       </form>
 
       <form className={styles.section} onSubmit={handleAddStaff} noValidate>

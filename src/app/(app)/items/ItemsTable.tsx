@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ALLOWED_GENDERS, type Gender } from "@/lib/categories";
 import { parseImages } from "@/lib/items";
+import { useToast } from "@/components/Toast/ToastProvider";
 import { ItemModal, type ItemFormValues, type Category } from "./ItemModal";
 import { DeleteItemModal } from "./DeleteItemModal";
 import { BulkDeleteModal } from "./BulkDeleteModal";
@@ -63,8 +64,7 @@ export function ItemsTable() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const toast = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -140,12 +140,6 @@ export function ItemsTable() {
     };
   }, [categoryFilter, genderFilter, searchQuery, refreshKey]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const id = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(id);
-  }, [toast]);
-
   // Drop any selected ids that no longer exist in the current (filtered) item list.
   useEffect(() => {
     if (!items) return;
@@ -173,7 +167,6 @@ export function ItemsTable() {
   }, [items, searchParams]);
 
   async function handleToggleActive(item: Item) {
-    setActionError(null);
     const res = await fetch(`/api/items/${item.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -193,7 +186,7 @@ export function ItemsTable() {
     });
     const data = await res.json();
     if (!res.ok) {
-      setActionError(data.error ?? "Failed to update item");
+      toast.error(data.error ?? "Failed to update item");
       return;
     }
     setItems((prev) => prev?.map((i) => (i.id === item.id ? data : i)) ?? null);
@@ -228,7 +221,7 @@ export function ItemsTable() {
     }
 
     setModal(null);
-    setToast(isEdit ? "Item updated" : "Item created");
+    toast.success(isEdit ? "Item updated" : "Item created");
     setRefreshKey((k) => k + 1);
   }
 
@@ -257,7 +250,6 @@ export function ItemsTable() {
     extra?: { categoryId: number }
   ) {
     setBulkBusy(true);
-    setActionError(null);
     const res = await fetch("/api/items/bulk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -267,7 +259,7 @@ export function ItemsTable() {
     setBulkBusy(false);
 
     if (!res.ok) {
-      setActionError(data.error ?? "Bulk action failed");
+      toast.error(data.error ?? "Bulk action failed");
       return { error: data.error ?? "Bulk action failed" };
     }
 
@@ -279,10 +271,14 @@ export function ItemsTable() {
           : action === "delete"
             ? "deleted"
             : "moved";
-    setToast(
-      `${data.succeeded.length} item${data.succeeded.length === 1 ? "" : "s"} ${verb}` +
-        (data.failed.length > 0 ? `, ${data.failed.length} failed` : "")
-    );
+    const message = `${data.succeeded.length} item${data.succeeded.length === 1 ? "" : "s"} ${verb}`;
+    if (data.failed.length > 0 && data.succeeded.length === 0) {
+      toast.error(`Bulk action failed for all ${data.failed.length} selected item(s)`);
+    } else if (data.failed.length > 0) {
+      toast.warning(`${message}, ${data.failed.length} failed`);
+    } else {
+      toast.success(message);
+    }
     setSelectedIds(new Set());
     setBulkCategoryId("");
     setRefreshKey((k) => k + 1);
@@ -307,7 +303,7 @@ export function ItemsTable() {
 
     setItems((prev) => prev?.filter((i) => i.id !== deleteTarget.id) ?? null);
     setDeleteTarget(null);
-    setToast("Item deleted");
+    toast.success("Item deleted");
   }
 
   const exportParams = new URLSearchParams();
@@ -376,9 +372,6 @@ export function ItemsTable() {
           New Item
         </button>
       </div>
-
-      {toast && <p className={styles.toast}>{toast}</p>}
-      {actionError && <p className={styles.actionError}>{actionError}</p>}
 
       {selectedIds.size > 0 && (
         <div className={styles.bulkBar}>

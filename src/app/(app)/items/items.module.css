@@ -86,25 +86,6 @@
   background: var(--sage-light);
 }
 
-.toast {
-  color: var(--sage-dark);
-  font-size: 0.85rem;
-  font-weight: 500;
-  background: var(--sage-light);
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
-}
-
-.actionError {
-  color: #a8402c;
-  font-size: 0.85rem;
-  background: rgba(168, 64, 44, 0.08);
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
-}
-
 .bulkBar {
   display: flex;
   flex-wrap: wrap;

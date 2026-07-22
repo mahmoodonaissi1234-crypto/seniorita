@@ -186,15 +186,6 @@
   cursor: not-allowed;
 }
 
-.toast {
-  color: var(--sage-dark);
-  font-size: 0.85rem;
-  font-weight: 500;
-  background: var(--sage-light);
-  border-radius: 8px;
-  padding: 10px 14px;
-}
-
 .teamList {
   display: flex;
   flex-direction: column;

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import Script from "next/script";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ToastProvider } from "@/components/Toast/ToastProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -49,7 +50,7 @@ export default function RootLayout({
           `}
         </Script>
         <ThemeToggle />
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );
