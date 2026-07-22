@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { validateItemInput } from "@/lib/items";
 import { logActivity } from "@/lib/activityLog";
+import { toCsv } from "@/lib/csv";
+import { CSV_COLUMNS } from "@/lib/itemsImport";
 import type { Prisma } from "@/generated/prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -29,6 +31,28 @@ export async function GET(request: NextRequest) {
     include: { category: true },
     orderBy: { name: "asc" },
   });
+
+  if (searchParams.get("format") === "csv") {
+    const rows = items.map((item) => [
+      item.name,
+      item.category.name,
+      item.gender,
+      item.type,
+      String(item.price),
+      item.material,
+      item.natureTheme,
+      item.description,
+      String(item.stock),
+      String(item.isActive),
+    ]);
+    const csv = toCsv([...CSV_COLUMNS], rows);
+    return new NextResponse(csv, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="items-export.csv"',
+      },
+    });
+  }
 
   return NextResponse.json(items);
 }

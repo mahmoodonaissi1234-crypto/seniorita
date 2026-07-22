@@ -114,6 +114,22 @@
   color: var(--terracotta);
 }
 
+.exportLink {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--sage-dark);
+  color: var(--sage-dark);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+  height: fit-content;
+  margin-left: auto;
+}
+
+.exportLink:hover {
+  background: var(--sage-light);
+}
+
 .chartSection {
   background: var(--cream);
   border: 1px solid var(--border);

@@ -63,3 +63,13 @@ export function parseCsv(text: string): string[][] {
 
   return rows.filter((r) => !(r.length === 1 && r[0] === ""));
 }
+
+function csvField(value: string): string {
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+// Inverse of parseCsv: builds RFC4180-style CSV text from a header row and
+// data rows, quoting fields that contain a comma, quote, or newline.
+export function toCsv(headers: string[], rows: string[][]): string {
+  return [headers, ...rows].map((row) => row.map(csvField).join(",")).join("\r\n") + "\r\n";
+}

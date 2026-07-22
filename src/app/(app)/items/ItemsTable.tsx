@@ -305,6 +305,13 @@ export function ItemsTable() {
     setToast("Item deleted");
   }
 
+  const exportParams = new URLSearchParams();
+  if (categoryFilter !== "") exportParams.set("category", String(categoryFilter));
+  if (genderFilter !== "") exportParams.set("gender", genderFilter);
+  if (searchQuery.trim()) exportParams.set("search", searchQuery.trim());
+  exportParams.set("format", "csv");
+  const exportUrl = `/api/items?${exportParams.toString()}`;
+
   const totalPages = items ? Math.max(1, Math.ceil(items.length / PAGE_SIZE)) : 1;
   const safePage = Math.min(currentPage, totalPages);
   const pageItems = items ? items.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE) : [];
@@ -355,6 +362,10 @@ export function ItemsTable() {
         <Link href="/items/import" className={styles.importLink}>
           Import CSV
         </Link>
+
+        <a href={exportUrl} className={styles.importLink}>
+          Export CSV
+        </a>
 
         <button className={styles.newBtn} onClick={() => setModal({ mode: "create" })}>
           New Item

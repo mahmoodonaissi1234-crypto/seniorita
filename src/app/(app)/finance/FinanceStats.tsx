@@ -169,6 +169,12 @@ export function FinanceStats() {
 
   const monthly = groupByMonth(transactions);
 
+  const exportParams = new URLSearchParams();
+  if (from) exportParams.set("from", from);
+  if (to) exportParams.set("to", to);
+  exportParams.set("format", "csv");
+  const exportUrl = `/api/transactions?${exportParams.toString()}`;
+
   return (
     <div className={styles.stack}>
       <div className={styles.grid}>
@@ -201,6 +207,9 @@ export function FinanceStats() {
             Clear
           </button>
         )}
+        <a href={exportUrl} className={styles.exportLink}>
+          Export CSV
+        </a>
       </div>
 
       <div className={styles.chartSection}>
