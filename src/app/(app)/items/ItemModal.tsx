@@ -2,10 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { ALLOWED_GENDERS, type Gender } from "@/lib/categories";
+import { ALLOWED_ITEM_TYPES, type ItemType } from "@/lib/items";
 import styles from "./ItemModal.module.css";
-
-const ITEM_TYPES = ["ring", "bracelet"] as const;
-type ItemType = (typeof ITEM_TYPES)[number];
 
 export type Category = { id: number; name: string };
 
@@ -126,7 +124,7 @@ export function ItemModal({ mode, categories, initialValues, onClose, onSubmit }
                 value={values.type}
                 onChange={(e) => setValues({ ...values, type: e.target.value as ItemType })}
               >
-                {ITEM_TYPES.map((t) => (
+                {ALLOWED_ITEM_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>

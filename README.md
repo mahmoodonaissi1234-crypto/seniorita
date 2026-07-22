@@ -60,6 +60,8 @@ src/
     activityLog.ts        # logActivity() helper, called from every mutating API route
     db.ts                # Prisma client singleton
     items.ts             # helpers for the Item.images JSON field
+    csv.ts                # dependency-free RFC4180-style CSV parser
+    itemsImport.ts         # per-row validation for CSV bulk import
     settings.ts          # Settings (business profile) validation
   proxy.ts               # route protection (redirects unauthenticated users to /login)
 ```
@@ -86,6 +88,12 @@ Owners manage staff accounts from the Team section at the bottom of Settings (ad
 ### Activity log
 
 Added in TICKET-119. Every mutating API route (create/edit/delete on Categories and Items, saving Settings, adding/removing a staff account) calls `logActivity()` after the change succeeds, recording who did it, what kind of action, what type of thing, and its id. The Activity Log page (owner-only, same 403-enforced pattern as Finance/Settings) lists these, filterable by user and date range. It starts empty on a fresh install/reseed rather than being pre-populated with fake history.
+
+### Bulk import (CSV)
+
+Added in TICKET-120. The Items page has an "Import CSV" button leading to `/items/import`, which documents the required column format (`name`, `category`, `gender`, `type`, `price` required; `material`, `natureTheme`, `description`, `stock`, `isActive` optional) on the page itself. `category` must match an existing category's name (case-insensitive) — the importer doesn't create categories.
+
+Import is two steps: `POST /api/items/import` parses and validates the CSV without writing anything, returning a per-row report (valid/error + reason); the page shows that report and only then offers a "Import N valid row(s)" button, which calls `POST /api/items/import/commit`. The commit endpoint re-validates from scratch (never trusts the client-side report) and only inserts the rows that are still valid, skipping the rest — a bad row never blocks the good ones. Each imported item is logged via `logActivity()` like any other created item. Any signed-in user (owner or staff) can import, same as creating items one at a time.
 
 ### Finance scope
 

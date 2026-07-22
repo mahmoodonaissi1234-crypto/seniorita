@@ -69,6 +69,23 @@
   background: var(--sage);
 }
 
+.importLink {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--sage-dark);
+  color: var(--sage-dark);
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.importLink:hover {
+  background: var(--sage-light);
+}
+
 .toast {
   color: var(--sage-dark);
   font-size: 0.85rem;

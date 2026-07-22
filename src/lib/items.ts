@@ -1,3 +1,10 @@
+export const ALLOWED_ITEM_TYPES = ["ring", "bracelet"] as const;
+export type ItemType = (typeof ALLOWED_ITEM_TYPES)[number];
+
+export function isValidItemType(value: unknown): value is ItemType {
+  return typeof value === "string" && (ALLOWED_ITEM_TYPES as readonly string[]).includes(value);
+}
+
 export function parseImages(images: string): string[] {
   try {
     const parsed = JSON.parse(images);

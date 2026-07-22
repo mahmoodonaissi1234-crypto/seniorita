@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ALLOWED_GENDERS, type Gender } from "@/lib/categories";
@@ -267,6 +268,10 @@ export function ItemsTable() {
             ))}
           </select>
         </div>
+
+        <Link href="/items/import" className={styles.importLink}>
+          Import CSV
+        </Link>
 
         <button className={styles.newBtn} onClick={() => setModal({ mode: "create" })}>
           New Item
