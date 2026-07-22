@@ -5,6 +5,13 @@ export function isValidItemType(value: unknown): value is ItemType {
   return typeof value === "string" && (ALLOWED_ITEM_TYPES as readonly string[]).includes(value);
 }
 
+export const ALLOWED_BULK_ACTIONS = ["activate", "deactivate", "delete", "changeCategory"] as const;
+export type BulkAction = (typeof ALLOWED_BULK_ACTIONS)[number];
+
+export function isValidBulkAction(value: unknown): value is BulkAction {
+  return typeof value === "string" && (ALLOWED_BULK_ACTIONS as readonly string[]).includes(value);
+}
+
 export function parseImages(images: string): string[] {
   try {
     const parsed = JSON.parse(images);

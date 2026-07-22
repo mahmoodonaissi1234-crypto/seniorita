@@ -8,6 +8,7 @@ import { ALLOWED_GENDERS, type Gender } from "@/lib/categories";
 import { parseImages } from "@/lib/items";
 import { ItemModal, type ItemFormValues, type Category } from "./ItemModal";
 import { DeleteItemModal } from "./DeleteItemModal";
+import { BulkDeleteModal } from "./BulkDeleteModal";
 import styles from "./items.module.css";
 
 type Item = {
@@ -74,6 +75,11 @@ export function ItemsTable() {
   const [modal, setModal] = useState<ModalState>(null);
   const [deleteTarget, setDeleteTarget] = useState<Item | null>(null);
 
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkCategoryId, setBulkCategoryId] = useState<number | "">("");
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+
   const searchParams = useSearchParams();
   const handledEditParam = useRef(false);
 
@@ -136,6 +142,19 @@ export function ItemsTable() {
     const id = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(id);
   }, [toast]);
+
+  // Drop any selected ids that no longer exist in the current (filtered) item list.
+  useEffect(() => {
+    if (!items) return;
+    const id = setTimeout(() => {
+      setSelectedIds((prev) => {
+        const validIds = new Set(items.map((i) => i.id));
+        const next = new Set([...prev].filter((id) => validIds.has(id)));
+        return next.size === prev.size ? prev : next;
+      });
+    }, 0);
+    return () => clearTimeout(id);
+  }, [items]);
 
   // Deep link support: /items?edit=<id> opens that item's edit modal directly.
   useEffect(() => {
@@ -206,6 +225,70 @@ export function ItemsTable() {
     setModal(null);
     setToast(isEdit ? "Item updated" : "Item created");
     setRefreshKey((k) => k + 1);
+  }
+
+  function toggleSelected(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectPage(checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const item of pageItems) {
+        if (checked) next.add(item.id);
+        else next.delete(item.id);
+      }
+      return next;
+    });
+  }
+
+  async function runBulkAction(
+    action: "activate" | "deactivate" | "delete" | "changeCategory",
+    extra?: { categoryId: number }
+  ) {
+    setBulkBusy(true);
+    setActionError(null);
+    const res = await fetch("/api/items/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: [...selectedIds], action, ...extra }),
+    });
+    const data = await res.json();
+    setBulkBusy(false);
+
+    if (!res.ok) {
+      setActionError(data.error ?? "Bulk action failed");
+      return { error: data.error ?? "Bulk action failed" };
+    }
+
+    const verb =
+      action === "activate"
+        ? "activated"
+        : action === "deactivate"
+          ? "deactivated"
+          : action === "delete"
+            ? "deleted"
+            : "moved";
+    setToast(
+      `${data.succeeded.length} item${data.succeeded.length === 1 ? "" : "s"} ${verb}` +
+        (data.failed.length > 0 ? `, ${data.failed.length} failed` : "")
+    );
+    setSelectedIds(new Set());
+    setBulkCategoryId("");
+    setRefreshKey((k) => k + 1);
+  }
+
+  async function handleBulkDeleteConfirm() {
+    const result = await runBulkAction("delete");
+    if (!result?.error) {
+      setBulkDeleteConfirm(false);
+    }
+    return result;
   }
 
   async function handleConfirmDelete() {
@@ -281,6 +364,70 @@ export function ItemsTable() {
       {toast && <p className={styles.toast}>{toast}</p>}
       {actionError && <p className={styles.actionError}>{actionError}</p>}
 
+      {selectedIds.size > 0 && (
+        <div className={styles.bulkBar}>
+          <span className={styles.bulkCount}>
+            {selectedIds.size} item{selectedIds.size === 1 ? "" : "s"} selected
+          </span>
+
+          <button
+            className={styles.bulkBtn}
+            disabled={bulkBusy}
+            onClick={() => runBulkAction("activate")}
+          >
+            Activate
+          </button>
+          <button
+            className={styles.bulkBtn}
+            disabled={bulkBusy}
+            onClick={() => runBulkAction("deactivate")}
+          >
+            Deactivate
+          </button>
+
+          <select
+            className={styles.bulkCategorySelect}
+            value={bulkCategoryId}
+            disabled={bulkBusy}
+            onChange={(e) => setBulkCategoryId(e.target.value ? Number(e.target.value) : "")}
+          >
+            <option value="">Move to category...</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <button
+            className={styles.bulkBtn}
+            disabled={bulkBusy || bulkCategoryId === ""}
+            onClick={() => {
+              if (bulkCategoryId !== "") {
+                runBulkAction("changeCategory", { categoryId: bulkCategoryId });
+              }
+            }}
+          >
+            Apply
+          </button>
+
+          <button
+            className={styles.bulkDeleteBtn}
+            disabled={bulkBusy}
+            onClick={() => setBulkDeleteConfirm(true)}
+          >
+            Delete
+          </button>
+
+          <button
+            className={styles.bulkClearBtn}
+            disabled={bulkBusy}
+            onClick={() => setSelectedIds(new Set())}
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <p className={styles.state}>Loading items...</p>
       ) : error ? (
@@ -304,6 +451,14 @@ export function ItemsTable() {
           <table className={styles.table}>
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    checked={pageItems.length > 0 && pageItems.every((i) => selectedIds.has(i.id))}
+                    onChange={(e) => toggleSelectPage(e.target.checked)}
+                    aria-label="Select all items on this page"
+                  />
+                </th>
                 <th></th>
                 <th>Name</th>
                 <th>Category</th>
@@ -319,6 +474,14 @@ export function ItemsTable() {
                 const [image] = parseImages(item.images);
                 return (
                   <tr key={item.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(item.id)}
+                        onChange={() => toggleSelected(item.id)}
+                        aria-label={`Select ${item.name}`}
+                      />
+                    </td>
                     <td>
                       <div className={styles.thumbWrap}>
                         {image && (
@@ -398,6 +561,14 @@ export function ItemsTable() {
           initialValues={modal.mode === "edit" ? itemToFormValues(modal.item) : EMPTY_FORM}
           onClose={() => setModal(null)}
           onSubmit={handleModalSubmit}
+        />
+      )}
+
+      {bulkDeleteConfirm && (
+        <BulkDeleteModal
+          count={selectedIds.size}
+          onCancel={() => setBulkDeleteConfirm(false)}
+          onConfirm={handleBulkDeleteConfirm}
         />
       )}
 
