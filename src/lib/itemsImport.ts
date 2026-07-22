@@ -12,6 +12,7 @@ export const CSV_COLUMNS = [
   "description",
   "stock",
   "isActive",
+  "lowStockThreshold",
 ] as const;
 
 const REQUIRED_COLUMNS = ["name", "category", "gender", "type", "price"] as const;
@@ -98,6 +99,15 @@ export function validateImportRow(
     }
   }
 
+  const lowStockThresholdRaw = cell(row, headerMap, "lowStockThreshold");
+  let lowStockThreshold: number | null = null;
+  if (lowStockThresholdRaw !== "") {
+    lowStockThreshold = Number(lowStockThresholdRaw);
+    if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0) {
+      errors.push("lowStockThreshold must be a non-negative whole number");
+    }
+  }
+
   if (errors.length > 0) {
     return { row: rowNumber, name: name || `(row ${rowNumber})`, status: "error", errors };
   }
@@ -117,6 +127,7 @@ export function validateImportRow(
       description: cell(row, headerMap, "description"),
       images: serializeImages([]),
       stock,
+      lowStockThreshold,
       isActive: parseBoolean(cell(row, headerMap, "isActive"), true),
     },
   };

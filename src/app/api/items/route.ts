@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { validateItemInput } from "@/lib/items";
 import { logActivity } from "@/lib/activityLog";
+import { notifyLowStock } from "@/lib/notifications";
 import { toCsv } from "@/lib/csv";
 import { CSV_COLUMNS } from "@/lib/itemsImport";
 import type { Prisma } from "@/generated/prisma/client";
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
       item.description,
       String(item.stock),
       String(item.isActive),
+      item.lowStockThreshold === null ? "" : String(item.lowStockThreshold),
     ]);
     const csv = toCsv([...CSV_COLUMNS], rows);
     return new NextResponse(csv, {
@@ -82,5 +84,12 @@ export async function POST(request: NextRequest) {
     include: { category: true },
   });
   await logActivity(user, "created", "item", item.id);
+
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  const threshold = item.lowStockThreshold ?? settings?.lowStockThreshold ?? 5;
+  if (item.stock < threshold) {
+    notifyLowStock(item.name, item.stock, threshold);
+  }
+
   return NextResponse.json(item, { status: 201 });
 }

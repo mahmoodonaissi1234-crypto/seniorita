@@ -9,6 +9,7 @@ type Item = {
   name: string;
   price: number;
   stock: number;
+  lowStockThreshold: number | null;
   createdAt: string;
 };
 
@@ -16,14 +17,16 @@ type Category = {
   id: number;
 };
 
-// No threshold was specified in the ticket; 5 units is a reasonable
-// low-stock cutoff for a small catalog like this one.
-const LOW_STOCK_THRESHOLD = 5;
 const RECENT_ITEMS_COUNT = 5;
+
+function effectiveThreshold(item: Item, globalThreshold: number): number {
+  return item.lowStockThreshold ?? globalThreshold;
+}
 
 export function DashboardStats() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [categories, setCategories] = useState<Category[] | null>(null);
+  const [lowStockThreshold, setLowStockThreshold] = useState(5);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -31,8 +34,12 @@ export function DashboardStats() {
   useEffect(() => {
     let ignore = false;
 
-    Promise.all([fetch("/api/items"), fetch("/api/categories")])
-      .then(async ([itemsRes, categoriesRes]) => {
+    Promise.all([
+      fetch("/api/items"),
+      fetch("/api/categories"),
+      fetch("/api/settings/low-stock-threshold"),
+    ])
+      .then(async ([itemsRes, categoriesRes, thresholdRes]) => {
         if (!itemsRes.ok || !categoriesRes.ok) {
           throw new Error("Failed to load dashboard data");
         }
@@ -40,9 +47,11 @@ export function DashboardStats() {
           itemsRes.json(),
           categoriesRes.json(),
         ]);
+        const thresholdData = thresholdRes.ok ? await thresholdRes.json() : null;
         if (!ignore) {
           setItems(itemsData);
           setCategories(categoriesData);
+          if (thresholdData) setLowStockThreshold(thresholdData.lowStockThreshold);
         }
       })
       .catch(() => {
@@ -81,13 +90,15 @@ export function DashboardStats() {
 
   const totalItems = items.length;
   const totalCategories = categories.length;
-  const lowStockCount = items.filter((i) => i.stock < LOW_STOCK_THRESHOLD).length;
+  const lowStockItems = items
+    .filter((i) => i.stock < effectiveThreshold(i, lowStockThreshold))
+    .sort((a, b) => a.stock - b.stock);
   const inventoryValue = items.reduce((sum, i) => sum + i.price * i.stock, 0);
 
   const cards = [
     { label: "Total Items", value: totalItems.toLocaleString() },
     { label: "Total Categories", value: totalCategories.toLocaleString() },
-    { label: "Low Stock Items", value: lowStockCount.toLocaleString() },
+    { label: "Low Stock Items", value: lowStockItems.length.toLocaleString() },
     {
       label: "Total Inventory Value",
       value: inventoryValue.toLocaleString("en-US", {
@@ -111,6 +122,26 @@ export function DashboardStats() {
           </div>
         ))}
       </div>
+
+      {lowStockItems.length > 0 && (
+        <div className={styles.lowStockBanner}>
+          <h2 className={styles.recentTitle}>
+            Low Stock ({lowStockItems.length})
+          </h2>
+          <ul className={styles.recentList}>
+            {lowStockItems.map((item) => (
+              <li key={item.id} className={styles.recentRow}>
+                <Link href={`/items?edit=${item.id}`} className={styles.recentLink}>
+                  {item.name}
+                </Link>
+                <span className={styles.lowStockCount}>
+                  {item.stock} left (threshold {effectiveThreshold(item, lowStockThreshold)})
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className={styles.recentSection}>
         <h2 className={styles.recentTitle}>Recently Added</h2>

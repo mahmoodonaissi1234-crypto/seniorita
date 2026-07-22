@@ -81,6 +81,23 @@
   padding: 20px 24px;
 }
 
+.lowStockBanner {
+  background: var(--cream);
+  border: 1px solid var(--terracotta);
+  border-radius: 16px;
+  padding: 20px 24px;
+}
+
+.lowStockBanner .recentTitle {
+  color: var(--terracotta);
+}
+
+.lowStockCount {
+  font-size: 0.8rem;
+  color: var(--terracotta);
+  font-weight: 600;
+}
+
 .recentTitle {
   font-family: var(--font-display);
   font-size: 1.2rem;

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { validateItemInput } from "@/lib/items";
 import { logActivity } from "@/lib/activityLog";
+import { notifyLowStock } from "@/lib/notifications";
 
 function parseId(idParam: string): number | null {
   const id = Number(idParam);
@@ -69,6 +70,13 @@ export async function PUT(
     include: { category: true },
   });
   await logActivity(user, "edited", "item", item.id);
+
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  const threshold = item.lowStockThreshold ?? settings?.lowStockThreshold ?? 5;
+  if (item.stock < threshold) {
+    notifyLowStock(item.name, item.stock, threshold);
+  }
+
   return NextResponse.json(item);
 }
 

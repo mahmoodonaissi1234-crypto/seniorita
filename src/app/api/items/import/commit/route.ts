@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
+import { notifyLowStock } from "@/lib/notifications";
 import { parseCsv } from "@/lib/csv";
 import { buildHeaderMap, validateHeader, validateImportRow } from "@/lib/itemsImport";
 
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
   );
 
   const validRows = results.filter((r) => r.status === "valid");
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
 
   const created: Array<{ row: number; id: number; name: string }> = [];
   for (const result of validRows) {
@@ -43,6 +45,11 @@ export async function POST(request: NextRequest) {
     const item = await prisma.item.create({ data: result.data });
     await logActivity(user, "created", "item", item.id);
     created.push({ row: result.row, id: item.id, name: item.name });
+
+    const threshold = item.lowStockThreshold ?? settings?.lowStockThreshold ?? 5;
+    if (item.stock < threshold) {
+      notifyLowStock(item.name, item.stock, threshold);
+    }
   }
 
   const invalidCount = results.length - validRows.length;

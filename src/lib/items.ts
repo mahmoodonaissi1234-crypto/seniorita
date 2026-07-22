@@ -36,6 +36,7 @@ export type ItemInput = {
   description: string;
   images: string;
   stock: number;
+  lowStockThreshold: number | null;
   isActive: boolean;
 };
 
@@ -72,6 +73,15 @@ export function validateItemInput(body: unknown): { data: ItemInput } | { error:
       ? b.images
       : serializeImages([]);
 
+  let lowStockThreshold: number | null = null;
+  if (b.lowStockThreshold !== undefined && b.lowStockThreshold !== null && b.lowStockThreshold !== "") {
+    const parsed = Number(b.lowStockThreshold);
+    if (!Number.isInteger(parsed) || parsed < 0) {
+      return { error: "lowStockThreshold must be a non-negative whole number" };
+    }
+    lowStockThreshold = parsed;
+  }
+
   return {
     data: {
       name: b.name.trim(),
@@ -84,6 +94,7 @@ export function validateItemInput(body: unknown): { data: ItemInput } | { error:
       description: typeof b.description === "string" ? b.description : "",
       images,
       stock: Number.isInteger(b.stock) ? (b.stock as number) : 0,
+      lowStockThreshold,
       isActive: typeof b.isActive === "boolean" ? b.isActive : true,
     },
   };

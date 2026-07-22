@@ -15,6 +15,7 @@ type Settings = {
   taxRatePercent: number;
   defaultGenders: string[];
   maintenanceMode: boolean;
+  lowStockThreshold: number;
 };
 
 type FormValues = {
@@ -26,6 +27,7 @@ type FormValues = {
   taxRatePercent: string;
   defaultGenders: Gender[];
   maintenanceMode: boolean;
+  lowStockThreshold: string;
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
@@ -49,6 +51,7 @@ const EMPTY_FORM: FormValues = {
   taxRatePercent: "0",
   defaultGenders: [...ALLOWED_GENDERS],
   maintenanceMode: false,
+  lowStockThreshold: "5",
   currentPassword: "",
   newPassword: "",
   confirmPassword: "",
@@ -71,6 +74,11 @@ function validate(values: FormValues): FieldErrors {
 
   if (values.defaultGenders.length === 0) {
     errors.defaultGenders = "Select at least one gender category";
+  }
+
+  const lowStockThreshold = Number(values.lowStockThreshold);
+  if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0) {
+    errors.lowStockThreshold = "Enter a whole number, 0 or greater";
   }
 
   if (values.newPassword || values.confirmPassword || values.currentPassword) {
@@ -136,6 +144,7 @@ export function SettingsForm() {
               ...ALLOWED_GENDERS,
             ],
             maintenanceMode: data.maintenanceMode ?? false,
+            lowStockThreshold: String(data.lowStockThreshold ?? 5),
             currentPassword: "",
             newPassword: "",
             confirmPassword: "",
@@ -254,6 +263,7 @@ export function SettingsForm() {
         taxRatePercent: Number(values.taxRatePercent),
         defaultGenders: values.defaultGenders,
         maintenanceMode: values.maintenanceMode,
+        lowStockThreshold: Number(values.lowStockThreshold),
         currentPassword: values.currentPassword || undefined,
         newPassword: values.newPassword || undefined,
       }),
@@ -434,6 +444,33 @@ export function SettingsForm() {
               />
             </div>
           </div>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Inventory</h2>
+
+          <label className={styles.field}>
+            Low Stock Threshold
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={values.lowStockThreshold}
+              onChange={(e) =>
+                setValues({ ...values, lowStockThreshold: e.target.value })
+              }
+            />
+            <span className={styles.fieldHint}>
+              Items with fewer units in stock than this show up as low stock
+              on the Dashboard. An individual item can override this on its
+              own edit form.
+            </span>
+            {fieldErrors.lowStockThreshold && (
+              <span className={styles.fieldError}>
+                {fieldErrors.lowStockThreshold}
+              </span>
+            )}
+          </label>
         </section>
 
         <section className={styles.section}>

@@ -17,6 +17,7 @@ export type ItemFormValues = {
   natureTheme: string;
   description: string;
   stock: string;
+  lowStockThreshold: string;
 };
 
 type FieldErrors = Partial<Record<keyof ItemFormValues, string>>;
@@ -40,6 +41,12 @@ function validate(values: ItemFormValues): FieldErrors {
   const price = Number(values.price);
   if (values.price.trim() === "" || !Number.isFinite(price) || price <= 0) {
     errors.price = "Price must be a positive number";
+  }
+  if (values.lowStockThreshold.trim() !== "") {
+    const threshold = Number(values.lowStockThreshold);
+    if (!Number.isInteger(threshold) || threshold < 0) {
+      errors.lowStockThreshold = "Enter a whole number, 0 or greater";
+    }
   }
   return errors;
 }
@@ -166,6 +173,21 @@ export function ItemModal({ mode, categories, initialValues, onClose, onSubmit }
               />
             </label>
           </div>
+
+          <label className={styles.field}>
+            Low stock threshold (optional)
+            <input
+              type="number"
+              min="0"
+              step="1"
+              placeholder="Use the global default"
+              value={values.lowStockThreshold}
+              onChange={(e) => setValues({ ...values, lowStockThreshold: e.target.value })}
+            />
+            {fieldErrors.lowStockThreshold && (
+              <span className={styles.fieldError}>{fieldErrors.lowStockThreshold}</span>
+            )}
+          </label>
 
           <label className={styles.field}>
             Nature theme

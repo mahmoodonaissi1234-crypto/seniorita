@@ -71,10 +71,10 @@ src/
 The database is SQLite, stored locally as `dev.db` (gitignored — each machine has its own copy). Schema changes live in `prisma/schema.prisma`, and migrations are tracked in `prisma/migrations/` (committed to git).
 
 - **Category**: `id`, `name`, `gender` (men/women/unisex), `description`, `createdAt`
-- **Item**: `id`, `name`, `category` (FK), `gender`, `type` (ring/bracelet), `price`, `material`, `natureTheme`, `description`, `images` (JSON array of image paths), `stock`, `isActive`, `createdAt`
+- **Item**: `id`, `name`, `category` (FK), `gender`, `type` (ring/bracelet), `price`, `material`, `natureTheme`, `description`, `images` (JSON array of image paths), `stock`, `lowStockThreshold` (optional per-item override, see "Low stock alerts" below), `isActive`, `createdAt`
 - **Transaction**: `id`, `type` (sale/expense), `amount`, `description`, `date`, `item` (optional FK), `createdAt` — see "Finance scope" below
 - **User**: `id`, `name`, `email` (unique), `passwordHash`, `role` (owner/staff), `createdAt` — login accounts. Login checks credentials against this table, so changing your password on the Settings page actually takes effect.
-- **Settings**: single-row (id 1) table for the business profile, shared by whoever can see it — `businessName`, `logoUrl` (a data URL), `updatedAt`. Also holds storefront-facing preferences (`currency`, `taxRatePercent`, `defaultGenders` JSON array, `maintenanceMode`) — these don't drive any live behavior yet since there's no public storefront, but the Settings page lets you configure them ahead of one existing.
+- **Settings**: single-row (id 1) table for the business profile, shared by whoever can see it — `businessName`, `logoUrl` (a data URL), `lowStockThreshold` (global default, see "Low stock alerts" below), `updatedAt`. Also holds storefront-facing preferences (`currency`, `taxRatePercent`, `defaultGenders` JSON array, `maintenanceMode`) — these don't drive any live behavior yet since there's no public storefront, but the Settings page lets you configure them ahead of one existing.
 - **ActivityLog**: `id`, `user` (optional FK, SET NULL if the account is later removed), `userName` (a snapshot, so entries stay readable after that), `action` (created/edited/deleted), `entityType` (category/item/settings/user), `entityId`, `timestamp` — see "Activity log" below.
 
 After pulling changes that touch `prisma/schema.prisma`, re-run `npm run db:migrate` to apply them to your local database.
@@ -91,7 +91,7 @@ Added in TICKET-119. Every mutating API route (create/edit/delete on Categories 
 
 ### Bulk import (CSV)
 
-Added in TICKET-120. The Items page has an "Import CSV" button leading to `/items/import`, which documents the required column format (`name`, `category`, `gender`, `type`, `price` required; `material`, `natureTheme`, `description`, `stock`, `isActive` optional) on the page itself. `category` must match an existing category's name (case-insensitive) — the importer doesn't create categories.
+Added in TICKET-120. The Items page has an "Import CSV" button leading to `/items/import`, which documents the required column format (`name`, `category`, `gender`, `type`, `price` required; `material`, `natureTheme`, `description`, `stock`, `isActive`, `lowStockThreshold` optional) on the page itself. `category` must match an existing category's name (case-insensitive) — the importer doesn't create categories.
 
 Import is two steps: `POST /api/items/import` parses and validates the CSV without writing anything, returning a per-row report (valid/error + reason); the page shows that report and only then offers a "Import N valid row(s)" button, which calls `POST /api/items/import/commit`. The commit endpoint re-validates from scratch (never trusts the client-side report) and only inserts the rows that are still valid, skipping the rest — a bad row never blocks the good ones. Each imported item is logged via `logActivity()` like any other created item. Any signed-in user (owner or staff) can import, same as creating items one at a time.
 
@@ -102,6 +102,10 @@ Added in TICKET-121. Each row in the Items table has a checkbox (plus a "select 
 ### CSV export (Items and Finance)
 
 Added in TICKET-122. Both `GET /api/items` and `GET /api/transactions` accept `?format=csv`, returning the same filtered result set as their normal JSON response but as a CSV file (`Content-Disposition: attachment`) instead. The Items table's "Export CSV" link builds that query from whatever category/gender/search filters are currently active; the Finance page's does the same from the current date-range filter. The items export uses the exact same column order as the CSV import (TICKET-120), so an export can be edited and re-imported directly.
+
+### Low stock alerts
+
+Added in TICKET-123. The threshold is configurable two ways: a global default in Settings → Inventory (`Settings.lowStockThreshold`, defaults to 5), and an optional per-item override (`Item.lowStockThreshold`) set on that item's edit form — an item is "low stock" when its stock is below its own override if it has one, otherwise below the global default. `GET /api/settings/low-stock-threshold` exposes just that one number to any signed-in user (unlike the rest of Settings, which is owner-only), so staff can still see the Dashboard's low-stock banner. The Dashboard shows a "Low Stock" card (a count) and a banner listing every low-stock item with its current stock and effective threshold, each linking to that item's edit form. There's no email infrastructure yet, so the "send a notification" part is stubbed: `src/lib/notifications.ts` just logs what it would have sent, called whenever an item is created or edited (individually or via CSV import) and ends up under its threshold.
 
 ### Finance scope
 

@@ -23,6 +23,7 @@ type Item = {
   description: string;
   images: string;
   stock: number;
+  lowStockThreshold: number | null;
   isActive: boolean;
   category: { id: number; name: string };
 };
@@ -40,6 +41,7 @@ const EMPTY_FORM: ItemFormValues = {
   natureTheme: "",
   description: "",
   stock: "0",
+  lowStockThreshold: "",
 };
 
 function itemToFormValues(item: Item): ItemFormValues {
@@ -53,6 +55,7 @@ function itemToFormValues(item: Item): ItemFormValues {
     natureTheme: item.natureTheme,
     description: item.description,
     stock: String(item.stock),
+    lowStockThreshold: item.lowStockThreshold === null ? "" : String(item.lowStockThreshold),
   };
 }
 
@@ -184,6 +187,7 @@ export function ItemsTable() {
         natureTheme: item.natureTheme,
         description: item.description,
         stock: item.stock,
+        lowStockThreshold: item.lowStockThreshold,
         isActive: !item.isActive,
       }),
     });
@@ -213,6 +217,7 @@ export function ItemsTable() {
         natureTheme: values.natureTheme,
         description: values.description,
         stock: Number(values.stock) || 0,
+        lowStockThreshold: values.lowStockThreshold.trim() === "" ? null : Number(values.lowStockThreshold),
         isActive: isEdit ? modal.item.isActive : true,
       }),
     });

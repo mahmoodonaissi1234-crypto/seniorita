@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     taxRatePercent: settings.taxRatePercent,
     defaultGenders: parseGenders(settings.defaultGenders),
     maintenanceMode: settings.maintenanceMode,
+    lowStockThreshold: settings.lowStockThreshold,
     updatedAt: settings.updatedAt,
   });
 }
@@ -88,6 +89,7 @@ export async function PUT(request: NextRequest) {
     taxRatePercent: updatedSettings.taxRatePercent,
     defaultGenders: parseGenders(updatedSettings.defaultGenders),
     maintenanceMode: updatedSettings.maintenanceMode,
+    lowStockThreshold: updatedSettings.lowStockThreshold,
     updatedAt: updatedSettings.updatedAt,
   });
 }

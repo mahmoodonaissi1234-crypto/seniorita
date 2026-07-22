@@ -58,6 +58,7 @@ export type BusinessUpdate = {
   taxRatePercent: number;
   defaultGenders: string;
   maintenanceMode: boolean;
+  lowStockThreshold: number;
 };
 
 export function validateBusinessInput(body: unknown): { error: string } | { data: BusinessUpdate } {
@@ -91,6 +92,11 @@ export function validateBusinessInput(body: unknown): { error: string } | { data
 
   const maintenanceMode = Boolean(b.maintenanceMode);
 
+  const lowStockThreshold = Number(b.lowStockThreshold);
+  if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0) {
+    return { error: "Low stock threshold must be a non-negative whole number" };
+  }
+
   return {
     data: {
       businessName,
@@ -99,6 +105,7 @@ export function validateBusinessInput(body: unknown): { error: string } | { data
       taxRatePercent,
       defaultGenders: serializeGenders(defaultGendersInput),
       maintenanceMode,
+      lowStockThreshold,
     },
   };
 }

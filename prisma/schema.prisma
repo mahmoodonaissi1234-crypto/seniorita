@@ -32,6 +32,9 @@ model Item {
   description  String
   images       String
   stock        Int           @default(0)
+  // Per-item override for the low-stock alert threshold (TICKET-123).
+  // Null means "use the global default from Settings".
+  lowStockThreshold Int?
   isActive     Boolean       @default(true)
   createdAt    DateTime      @default(now())
   transactions Transaction[]
@@ -64,6 +67,9 @@ model Settings {
   taxRatePercent  Float    @default(0)
   defaultGenders  String   @default("[\"men\",\"women\",\"unisex\"]")
   maintenanceMode Boolean  @default(false)
+  // Global default low-stock alert threshold (TICKET-123); an Item can
+  // override it with its own lowStockThreshold.
+  lowStockThreshold Int    @default(5)
   updatedAt       DateTime @updatedAt
 }
 
